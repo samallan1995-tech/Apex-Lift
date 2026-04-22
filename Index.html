@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apex Lift — Performance Growth. Zero Risk.</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --black: #080807;
+  --offwhite: #f0ece2;
+  --gold: #c8a45a;
+  --gold2: #e8c97a;
+  --dim: #1a1916;
+  --dim2: #242320;
+  --border: rgba(200,164,90,0.15);
+  --muted: #6b6760;
+  --text: #b0aa9f;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--offwhite);
+  font-family: 'Syne', sans-serif;
+  cursor: none;
+  overflow-x: hidden;
+}
+
+/* CUSTOM CURSOR */
+.cursor {
+  position: fixed;
+  width: 10px; height: 10px;
+  background: var(--gold);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform 0.15s ease;
+  mix-blend-mode: difference;
+}
+
+.cursor-ring {
+  position: fixed;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(200,164,90,0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transition: transform 0.35s ease, width 0.3s, height 0.3s;
+}
+
+/* GRAIN OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  padding: 28px 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.4s, padding 0.4s;
+}
+
+nav.scrolled {
+  background: rgba(8,8,7,0.95);
+  backdrop-filter: blur(16px);
+  padding: 18px 60px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 5px;
+  color: var(--offwhite);
+  text-decoration: none;
+}
+
+.nav-logo em { color: var(--gold); font-style: normal; }
+
+.nav-links {
+  display: flex;
+  gap: 40px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover { color: var(--gold); }
+
+.nav-cta {
+  padding: 10px 24px;
+  border: 1px solid var(--gold);
+  color: var(--gold) !important;
+  border-radius: 2px;
+  font-size: 10px !important;
+  letter-spacing: 2px !important;
+  transition: all 0.25s !important;
+}
+
+.nav-cta:hover {
+  background: var(--gold) !important;
+  color: var(--black) !important;
+}
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 0 60px;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 70% 50%, rgba(200,164,90,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 10% 80%, rgba(200,164,90,0.04) 0%, transparent 60%);
+}
+
+.hero-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 55%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--border), transparent);
+}
+
+.hero-content {
+  max-width: 700px;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: slideUp 0.8s 0.2s forwards;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  display: block;
+  width: 32px; height: 1px;
+  background: var(--gold);
+}
+
+.hero-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 9vw, 130px);
+  line-height: 0.92;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  opacity: 0;
+  animation: slideUp 0.8s 0.35s forwards;
+}
+
+.hero-h1 .outline {
+  -webkit-text-stroke: 1px rgba(240,236,226,0.3);
+  color: transparent;
+}
+
+.hero-h1 .gold { color: var(--gold); }
+
+.hero-sub {
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.7;
+  max-width: 480px;
+  margin: 32px 0 48px;
+  opacity: 0;
+  animation: slideUp 0.8s 0.5s forwards;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  opacity: 0;
+  animation: slideUp 0.8s 0.65s forwards;
+}
+
+.btn-primary {
+  padding: 16px 36px;
+  background: var(--gold);
+  color: var(--black);
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: none;
+  cursor: none;
+  transition: all 0.25s;
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  background: var(--gold2);
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  padding: 16px 36px;
+  border: 1px solid rgba(240,236,226,0.15);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: all 0.25s;
+  display: inline-block;
+}
+
+.btn-ghost:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.hero-stats {
+  position: absolute;
+  right: 60px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  opacity: 0;
+  animation: fadeIn 1s 1s forwards;
+}
+
+.hero-stat-item {
+  text-align: right;
+}
+
+.hero-stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  letter-spacing: 2px;
+  color: var(--offwhite);
+  line-height: 1;
+}
+
+.hero-stat-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.hero-scroll {
+  position: absolute;
+  bottom: 40px;
+  left: 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0;
+  animation: fadeIn 1s 1.2s forwards;
+}
+
+.scroll-line {
+  width: 40px; height: 1px;
+  background: var(--muted);
+  position: relative;
+  overflow: hidden;
+}
+
+.scroll-line::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: var(--gold);
+  animation: scrollLine 2s 1.5s infinite;
+}
+
+@keyframes scrollLine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* TICKER */
+.ticker {
+  background: var(--gold);
+  padding: 14px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-inner {
+  display: inline-flex;
+  gap: 0;
+  animation: ticker 25s linear infinite;
+}
+
+.ticker-item {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: var(--black);
+  padding: 0 40px;
+}
+
+.ticker-dot {
+  color: rgba(0,0,0,0.3);
+  padding: 0;
+}
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* SECTIONS */
+section {
+  padding: 120px 60px;
+  position: relative;
+}
+
+.section-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.section-tag::before {
+  content: '';
+  width: 24px; height: 1px;
+  background: var(--gold);
+}
+
+.section-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(48px, 6vw, 88px);
+  line-height: 0.95;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+/* HOW IT WORKS */
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  margin-top: 80px;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  gap: 28px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.step:first-child { border-top: 1px solid var(--border); }
+
+.step-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  min-width: 32px;
+  padding-top: 4px;
+}
+
+.step-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--offwhite);
+  margin-bottom: 8px;
+}
+
+.step-desc {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.how-right {
+  position: relative;
+}
+
+.big-zero-risk {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(100px, 14vw, 200px);
+  line-height: 0.85;
+  -webkit-text-stroke: 1px rgba(200,164,90,0.2);
+  color: transparent;
+  letter-spacing: -2px;
+  position: relative;
+}
+
+.zero-risk-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--dim);
+  border: 1px solid var(--border);
+  padding: 36px;
+  width: 280px;
+  text-align: center;
+}
+
+.zero-risk-card .amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.zero-risk-card .label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.zero-risk-card .desc {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 16px;
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+/* SERVICES */
+.services { background: var(--dim); }
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 60px;
+}
+
+.service-card {
+  background: var(--dim);
+  padding: 48px 36px;
+  transition: background 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transition: transform 0.3s;
+  transform-origin: left;
+}
+
+.service-card:hover { background: var(--dim2); }
+.service-card:hover::after { transform: scaleX(1); }
+
+.service-icon {
+  font-size: 28px;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.service-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--offwhite);
+  margin-bottom: 12px;
+}
+
+.service-desc {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.service-agent {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* RESULTS */
+.results-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin: 60px 0;
+}
+
+.result-box {
+  background: var(--black);
+  padding: 48px 32px;
+  text-align: center;
+}
+
+.result-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 72px;
+  color: var(--gold);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.result-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* TESTIMONIALS */
+.testimonials { background: var(--dim); }
+
+.testi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+}
+
+.testi-card {
+  background: var(--black);
+  border: 1px solid var(--border);
+  padding: 36px;
+  position: relative;
+}
+
+.testi-quote {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 17px;
+  color: var(--offwhite);
+  line-height: 1.65;
+  margin-bottom: 28px;
+}
+
+.testi-quote::before {
+  content: '"';
+  font-size: 60px;
+  color: var(--gold);
+  font-family: 'Playfair Display', serif;
+  line-height: 0.5;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.testi-author {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.testi-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--dim2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--gold);
+}
+
+.testi-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--offwhite);
+}
+
+.testi-role {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.testi-result {
+  margin-left: auto;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+/* CTA */
+.cta-section {
+  text-align: center;
+  padding: 160px 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(200,164,90,0.07) 0%, transparent 70%);
+}
+
+.cta-section .section-h2 {
+  font-size: clamp(52px, 7vw, 110px);
+  margin-bottom: 24px;
+}
+
+.cta-section p {
+  font-size: 17px;
+  color: var(--text);
+  max-width: 500px;
+  margin: 0 auto 48px;
+  line-height: 1.7;
+}
+
+/* CONTACT FORM */
+.contact { background: var(--dim); }
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  margin-top: 60px;
+  align-items: start;
+}
+
+.contact-info h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.contact-info p {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.7;
+  margin-bottom: 36px;
+}
+
+.contact-detail {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.contact-detail strong { color: var(--offwhite); }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--black);
+  border: 1px solid var(--border);
+  color: var(--offwhite);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  padding: 14px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  cursor: none;
+  -webkit-appearance: none;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--gold);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder { color: var(--muted); }
+
+.form-group textarea { min-height: 120px; resize: vertical; }
+
+.form-group select option { background: #1a1916; }
+
+.form-submit {
+  margin-top: 8px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 18px;
+  background: var(--gold);
+  color: var(--black);
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: none;
+  cursor: none;
+  transition: all 0.25s;
+}
+
+.submit-btn:hover {
+  background: var(--gold2);
+  transform: translateY(-2px);
+}
+
+/* FOOTER */
+footer {
+  padding: 48px 60px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: var(--offwhite);
+}
+
+.footer-logo em { color: var(--gold); font-style: normal; }
+
+.footer-copy {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-links a {
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover { color: var(--gold); }
+
+/* ANIMATIONS */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* THANK YOU STATE */
+.thank-you {
+  text-align: center;
+  padding: 60px 0;
+  display: none;
+}
+
+.thank-you h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  color: var(--gold);
+  letter-spacing: 3px;
+  margin-bottom: 12px;
+}
+
+.thank-you p {
+  color: var(--text);
+  font-size: 15px;
+}
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="#" class="nav-logo">APEX <em>LIFT</em></a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#contact" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-line"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Performance Growth Agency</div>
+    <h1 class="hero-h1">
+      WE ONLY<br>
+      <span class="outline">GET PAID</span><br>
+      <span class="gold">WHEN YOU</span><br>
+      GROW.
+    </h1>
+    <p class="hero-sub">Apex Lift generates new revenue for your business using AI-powered marketing, ads, and email funnels. Zero upfront cost. We take a percentage of what we create.</p>
+    <div class="hero-actions">
+      <a href="#contact" class="btn-primary">Start For Free</a>
+      <a href="#how" class="btn-ghost">See How It Works</a>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat-item">
+      <div class="hero-stat-num">0%</div>
+      <div class="hero-stat-label">Upfront Cost</div>
+    </div>
+    <div class="hero-stat-item">
+      <div class="hero-stat-num">15–25%</div>
+      <div class="hero-stat-label">Rev Share Only</div>
+    </div>
+    <div class="hero-stat-item">
+      <div class="hero-stat-num">48H</div>
+      <div class="hero-stat-label">To First Campaign</div>
+    </div>
+  </div>
+
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    Scroll
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <span class="ticker-item">EMAIL MARKETING</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">PAID ADS</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">SALES FUNNELS</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">REVENUE SHARE</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">ZERO RISK</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">AI-POWERED</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">PERFORMANCE GROWTH</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">EMAIL MARKETING</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">PAID ADS</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">SALES FUNNELS</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">REVENUE SHARE</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">ZERO RISK</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">AI-POWERED</span><span class="ticker-dot">✦</span>
+    <span class="ticker-item">PERFORMANCE GROWTH</span><span class="ticker-dot">✦</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-tag reveal">The Model</div>
+  <h2 class="section-h2 reveal">HOW IT<br>WORKS</h2>
+
+  <div class="how-grid">
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div>
+          <div class="step-title">We Audit Your Business</div>
+          <div class="step-desc">Our AI agents analyse your current revenue, funnels, email strategy, and ad spend. We identify exactly where money is being left on the table — in 24 hours.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div>
+          <div class="step-title">We Build Your Growth System</div>
+          <div class="step-desc">Email sequences, paid ad campaigns, conversion funnels — all built and launched by our team within 48 hours of signing. No meetings. No delays.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div>
+          <div class="step-title">Revenue Starts Coming In</div>
+          <div class="step-desc">We track every pound of new revenue with unique discount codes and UTM tracking. Full transparency — you see exactly what we generated.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div>
+          <div class="step-title">You Pay Us From Results</div>
+          <div class="step-desc">Monthly invoice for our agreed percentage of new revenue only. If we generated £0, you pay £0. It really is that simple.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="how-right reveal">
+      <div class="big-zero-risk">ZERO<br>RISK</div>
+      <div class="zero-risk-card">
+        <div class="amount">£0</div>
+        <div class="label">To Get Started</div>
+        <div class="desc">You only pay a percentage of the <strong style="color:var(--offwhite)">new revenue we generate</strong> for your business. If we don't perform, you don't pay.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <div class="section-tag reveal">What We Do</div>
+  <h2 class="section-h2 reveal">OUR<br>SERVICES</h2>
+
+  <div class="services-grid reveal">
+    <div class="service-card">
+      <span class="service-icon">✉️</span>
+      <div class="service-title">Email Marketing</div>
+      <div class="service-desc">Full lifecycle email systems — welcome flows, cart abandonment, upsell sequences, winbacks. Written by AI, refined by strategy.</div>
+      <div class="service-agent">Handled by NOVA</div>
+    </div>
+    <div class="service-card">
+      <span class="service-icon">📈</span>
+      <div class="service-title">Paid Ads</div>
+      <div class="service-desc">Meta and Google campaigns built for performance. We target the right audience, optimise constantly, and scale what works.</div>
+      <div class="service-agent">Handled by REX</div>
+    </div>
+    <div class="service-card">
+      <span class="service-icon">🔁</span>
+      <div class="service-title">Conversion Funnels</div>
+      <div class="service-desc">We map and fix your entire customer journey — from first click to repeat purchase. Every leak in your funnel costs you money.</div>
+      <div class="service-agent">Handled by NOVA + REX</div>
+    </div>
+    <div class="service-card">
+      <span class="service-icon">🎯</span>
+      <div class="service-title">Outbound Prospecting</div>
+      <div class="service-desc">For B2B clients — we build and run outbound sequences that book meetings and generate pipeline. Pure performance.</div>
+      <div class="service-agent">Handled by ARIA + MAX</div>
+    </div>
+    <div class="service-card">
+      <span class="service-icon">📊</span>
+      <div class="service-title">Revenue Analytics</div>
+      <div class="service-desc">Full attribution reporting. You see exactly which campaigns generated which revenue. No ambiguity, no disputes.</div>
+      <div class="service-agent">Handled by LUNA</div>
+    </div>
+    <div class="service-card">
+      <span class="service-icon">🤝</span>
+      <div class="service-title">Performance Contracts</div>
+      <div class="service-desc">Legally binding revenue-share agreements. You pay only from the upside we create. Transparent, clean, and fair.</div>
+      <div class="service-agent">Handled by FINN</div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="section-tag reveal">The Numbers</div>
+  <h2 class="section-h2 reveal">BUILT FOR<br>RESULTS</h2>
+
+  <div class="results-row reveal">
+    <div class="result-box">
+      <div class="result-num">4.2x</div>
+      <div class="result-label">Average ROAS on Paid Ads</div>
+    </div>
+    <div class="result-box">
+      <div class="result-num">38%</div>
+      <div class="result-label">Avg Email Open Rate</div>
+    </div>
+    <div class="result-box">
+      <div class="result-num">48H</div>
+      <div class="result-label">Time to First Campaign</div>
+    </div>
+    <div class="result-box">
+      <div class="result-num">£0</div>
+      <div class="result-label">Upfront Cost, Always</div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <div class="testi-grid reveal">
+    <div class="testi-card">
+      <div class="testi-quote">They built our entire email system in 48 hours and we saw results in the first week. The revenue share model meant we had nothing to lose.</div>
+      <div class="testi-author">
+        <div class="testi-avatar">JM</div>
+        <div>
+          <div class="testi-name">James Mitchell</div>
+          <div class="testi-role">CEO, StyleHive</div>
+        </div>
+        <div class="testi-result">+£22k</div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-quote">Our trial-to-paid conversion went from 8% to 19% in 6 weeks. Apex Lift identified the exact problem and fixed it without us lifting a finger.</div>
+      <div class="testi-author">
+        <div class="testi-avatar">SK</div>
+        <div>
+          <div class="testi-name">Sarah Kim</div>
+          <div class="testi-role">Founder, FormFlow</div>
+        </div>
+        <div class="testi-result">+£18k</div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-quote">The paid ads alone 4x'd our return. The team is fast, transparent, and the model is the most founder-friendly thing I've seen in this space.</div>
+      <div class="testi-author">
+        <div class="testi-avatar">DP</div>
+        <div>
+          <div class="testi-name">David Park</div>
+          <div class="testi-role">COO, NestDesk</div>
+        </div>
+        <div class="testi-result">+£31k</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="section-tag reveal" style="justify-content:center">Zero Risk</div>
+  <h2 class="section-h2 reveal">READY TO<br><span style="color:var(--gold)">GROW?</span></h2>
+  <p class="reveal">You have nothing to lose. No upfront fees. No monthly retainer. Just results — and a percentage of what we create together.</p>
+  <a href="#contact" class="btn-primary reveal">Get Your Free Audit</a>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <div class="section-tag reveal">Get Started</div>
+  <h2 class="section-h2 reveal">LET'S<br>TALK</h2>
+
+  <div class="contact-grid">
+    <div class="contact-info reveal">
+      <h3>BOOK YOUR FREE REVENUE AUDIT</h3>
+      <p>Tell us about your business. Our agents will analyse your revenue streams and identify exactly how much growth we can generate — before we sign anything.</p>
+      <div class="contact-detail">
+        <span>✉</span>
+        <div><strong>grow@apexlift.io</strong></div>
+      </div>
+      <div class="contact-detail">
+        <span>🌐</span>
+        <div><strong>apexlift.io</strong></div>
+      </div>
+      <div class="contact-detail">
+        <span>⚡</span>
+        <div><strong>Response within 2 hours</strong></div>
+      </div>
+      <div class="contact-detail">
+        <span>🔒</span>
+        <div><strong>No commitment. No upfront cost.</strong></div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <form class="form" id="contactForm" onsubmit="handleSubmit(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" placeholder="James" required>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" placeholder="Mitchell" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Business Email</label>
+          <input type="email" placeholder="james@yourbusiness.com" required>
+        </div>
+        <div class="form-group">
+          <label>Company Name</label>
+          <input type="text" placeholder="Your Company Ltd" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monthly Revenue</label>
+            <select required>
+              <option value="" disabled selected>Select range</option>
+              <option>£5k – £20k / month</option>
+              <option>£20k – £50k / month</option>
+              <option>£50k – £150k / month</option>
+              <option>£150k – £500k / month</option>
+              <option>£500k+ / month</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Business Type</label>
+            <select required>
+              <option value="" disabled selected>Select type</option>
+              <option>E-Commerce</option>
+              <option>SaaS</option>
+              <option>D2C Brand</option>
+              <option>Service Business</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Biggest Growth Challenge</label>
+          <textarea placeholder="Tell us where you're leaving money on the table..."></textarea>
+        </div>
+        <div class="form-submit">
+          <button type="submit" class="submit-btn">Request Free Audit →</button>
+        </div>
+      </form>
+      <div class="thank-you" id="thankYou">
+        <h3>✓ REQUEST SENT</h3>
+        <p>Our team will reach out within 2 hours with your free revenue audit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">APEX <em>LIFT</em></div>
+  <div class="footer-copy">© 2026 Apex Lift. Performance-based growth.</div>
+  <div class="footer-links">
+    <a href="#how">How It Works</a>
+    <a href="#services">Services</a>
+    <a href="#contact">Contact</a>
+  </div>
+</footer>
+
+<script>
+  // CURSOR
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx - 5 + 'px';
+    cursor.style.top = my - 5 + 'px';
+  });
+
+  function animRing() {
+    rx += (mx - rx - 18) * 0.12;
+    ry += (my - ry - 18) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animRing);
+  }
+  animRing();
+
+  document.querySelectorAll('a, button, input, select, textarea').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.transform = 'scale(2.5)';
+      ring.style.width = '56px';
+      ring.style.height = '56px';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.transform = 'scale(1)';
+      ring.style.width = '36px';
+      ring.style.height = '36px';
+    });
+  });
+
+  // NAV SCROLL
+  window.addEventListener('scroll', () => {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  // REVEAL ON SCROLL
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  reveals.forEach(r => observer.observe(r));
+
+  // FORM SUBMIT
+  function handleSubmit(e) {
+    e.preventDefault();
+    document.getElementById('contactForm').style.display = 'none';
+    document.getElementById('thankYou').style.display = 'block';
+  }
+
+  // SMOOTH SCROLL
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
