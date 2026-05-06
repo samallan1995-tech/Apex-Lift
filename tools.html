@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools We Recommend — Apex Lift</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --black:#080807;
+  --white:#f0ece2;
+  --gold:#c8a45a;
+  --gold2:#e8c97a;
+  --surface:#111110;
+  --surface2:#1a1916;
+  --border:rgba(200,164,90,0.15);
+  --muted:#6b6760;
+  --text:#9a948a;
+  --green:#3dba74;
+  --blue:#4a9edd;
+  --cyan:#00f5ff;
+  --red:#d63c3c;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  background:var(--black);
+  color:var(--white);
+  font-family:'Source Sans 3',sans-serif;
+  overflow-x:hidden;
+}
+
+/* Grid background */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(200,164,90,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(200,164,90,0.03) 1px,transparent 1px);
+  background-size:80px 80px;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* NAV */
+nav{
+  position:fixed;
+  top:0;left:0;right:0;
+  z-index:100;
+  padding:20px 60px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:rgba(8,8,7,0.9);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+
+.nav-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:24px;
+  letter-spacing:4px;
+  color:var(--white);
+}
+
+.nav-logo span{color:var(--gold)}
+
+.nav-back{
+  font-family:'Syne',sans-serif;
+  font-size:12px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--muted);
+  text-decoration:none;
+  transition:color 0.2s;
+}
+
+.nav-back:hover{color:var(--gold)}
+
+/* HERO */
+.hero{
+  padding:160px 60px 80px;
+  text-align:center;
+  position:relative;
+  z-index:2;
+  max-width:900px;
+  margin:0 auto;
+}
+
+.hero-tag{
+  font-family:'Syne',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+
+.hero-tag::before,.hero-tag::after{
+  content:'';
+  width:40px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold));
+}
+
+.hero-tag::after{transform:scaleX(-1)}
+
+.hero h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(56px,10vw,120px);
+  line-height:0.9;
+  letter-spacing:2px;
+  margin-bottom:24px;
+}
+
+.hero h1 .outline{
+  -webkit-text-stroke:1px rgba(200,164,90,0.4);
+  color:transparent;
+}
+
+.hero h1 .gold{color:var(--gold)}
+
+.hero-desc{
+  font-size:16px;
+  color:var(--text);
+  line-height:1.8;
+  max-width:600px;
+  margin:0 auto 48px;
+}
+
+.hero-note{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  background:rgba(200,164,90,0.06);
+  border:1px solid var(--border);
+  padding:12px 24px;
+  font-family:'Syne',sans-serif;
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:1px;
+}
+
+.hero-note strong{color:var(--gold)}
+
+/* CATEGORY FILTER */
+.filter-bar{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  padding:0 60px 60px;
+  flex-wrap:wrap;
+  position:relative;
+  z-index:2;
+}
+
+.filter-btn{
+  padding:8px 20px;
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--muted);
+  font-family:'Syne',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+
+.filter-btn:hover,.filter-btn.active{
+  background:var(--gold);
+  border-color:var(--gold);
+  color:var(--black);
+}
+
+/* TOOLS GRID */
+.tools-section{
+  padding:0 60px 80px;
+  position:relative;
+  z-index:2;
+  max-width:1200px;
+  margin:0 auto;
+}
+
+.section-label{
+  font-family:'Syne',sans-serif;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:24px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+
+.tools-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+  gap:1px;
+  background:var(--border);
+  border:1px solid var(--border);
+  margin-bottom:60px;
+}
+
+.tool-card{
+  background:var(--surface);
+  padding:36px 32px;
+  position:relative;
+  overflow:hidden;
+  transition:background 0.3s;
+  display:flex;
+  flex-direction:column;
+}
+
+.tool-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform 0.4s ease;
+}
+
+.tool-card:hover{background:var(--surface2)}
+.tool-card:hover::before{transform:scaleX(1)}
+
+/* Card accent colors */
+.tool-card.gold::before{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.tool-card.green::before{background:linear-gradient(90deg,var(--green),#5dd494)}
+.tool-card.blue::before{background:linear-gradient(90deg,var(--blue),#6bb5f0)}
+.tool-card.cyan::before{background:linear-gradient(90deg,var(--cyan),#00e8f0)}
+.tool-card.red::before{background:linear-gradient(90deg,var(--red),#e05555)}
+
+.tool-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:16px;
+}
+
+.tool-icon{
+  width:52px;height:52px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  flex-shrink:0;
+}
+
+.tool-icon.gold{background:rgba(200,164,90,0.1);border:1px solid rgba(200,164,90,0.2)}
+.tool-icon.green{background:rgba(61,186,116,0.1);border:1px solid rgba(61,186,116,0.2)}
+.tool-icon.blue{background:rgba(74,158,221,0.1);border:1px solid rgba(74,158,221,0.2)}
+.tool-icon.cyan{background:rgba(0,245,255,0.1);border:1px solid rgba(0,245,255,0.2)}
+.tool-icon.red{background:rgba(214,60,60,0.1);border:1px solid rgba(214,60,60,0.2)}
+
+.tool-badge{
+  font-family:'Syne',sans-serif;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:4px 10px;
+  border-radius:2px;
+}
+
+.tool-badge.gold{background:rgba(200,164,90,0.1);color:var(--gold);border:1px solid rgba(200,164,90,0.2)}
+.tool-badge.green{background:rgba(61,186,116,0.1);color:var(--green);border:1px solid rgba(61,186,116,0.2)}
+.tool-badge.blue{background:rgba(74,158,221,0.1);color:var(--blue);border:1px solid rgba(74,158,221,0.2)}
+.tool-badge.cyan{background:rgba(0,245,255,0.1);color:var(--cyan);border:1px solid rgba(0,245,255,0.2)}
+
+.tool-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:28px;
+  letter-spacing:2px;
+  color:var(--white);
+  margin-bottom:4px;
+}
+
+.tool-category{
+  font-family:'Syne',sans-serif;
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+
+.tool-desc{
+  font-size:13px;
+  color:var(--text);
+  line-height:1.75;
+  margin-bottom:20px;
+  flex:1;
+}
+
+.tool-features{
+  list-style:none;
+  margin-bottom:24px;
+}
+
+.tool-features li{
+  font-size:12px;
+  color:var(--text);
+  padding:6px 0;
+  border-bottom:1px solid rgba(200,164,90,0.06);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.tool-features li::before{
+  content:'→';
+  color:var(--gold);
+  font-size:11px;
+  flex-shrink:0;
+}
+
+.tool-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+
+.tool-commission{
+  font-family:'Syne',sans-serif;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:1px;
+}
+
+.tool-commission strong{
+  font-size:14px;
+  color:var(--green);
+  font-weight:700;
+}
+
+.tool-cta{
+  padding:10px 20px;
+  font-family:'Syne',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  text-decoration:none;
+  transition:all 0.2s;
+  display:inline-block;
+}
+
+.tool-cta.gold{
+  background:transparent;
+  border:1px solid var(--gold);
+  color:var(--gold);
+}
+
+.tool-cta.gold:hover{background:var(--gold);color:var(--black)}
+
+.tool-cta.green{
+  background:transparent;
+  border:1px solid var(--green);
+  color:var(--green);
+}
+
+.tool-cta.green:hover{background:var(--green);color:var(--black)}
+
+.tool-cta.blue{
+  background:transparent;
+  border:1px solid var(--blue);
+  color:var(--blue);
+}
+
+.tool-cta.blue:hover{background:var(--blue);color:var(--white)}
+
+.tool-cta.cyan{
+  background:transparent;
+  border:1px solid var(--cyan);
+  color:var(--cyan);
+}
+
+.tool-cta.cyan:hover{background:var(--cyan);color:var(--black)}
+
+/* WE USE THIS BADGE */
+.we-use{
+  position:absolute;
+  top:16px;right:16px;
+  font-family:'Syne',sans-serif;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  background:rgba(200,164,90,0.1);
+  border:1px solid rgba(200,164,90,0.3);
+  color:var(--gold);
+  padding:3px 8px;
+}
+
+/* DISCLAIMER */
+.disclaimer{
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:32px 40px;
+  margin:0 60px 60px;
+  max-width:1200px;
+  margin-left:auto;
+  margin-right:auto;
+  position:relative;
+  z-index:2;
+}
+
+.disclaimer::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+
+.disclaimer-title{
+  font-family:'Syne',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:10px;
+}
+
+.disclaimer p{
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.7;
+}
+
+/* FOOTER */
+footer{
+  padding:32px 60px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  position:relative;
+  z-index:2;
+}
+
+.footer-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;
+  letter-spacing:3px;
+  color:var(--white);
+}
+
+.footer-logo span{color:var(--gold)}
+
+.footer-copy{
+  font-family:'Syne',sans-serif;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:1px;
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.hero{animation:fadeUp 0.8s ease forwards}
+
+.tool-card{
+  opacity:0;
+  animation:fadeUp 0.6s ease forwards;
+}
+
+.tool-card:nth-child(1){animation-delay:0.1s}
+.tool-card:nth-child(2){animation-delay:0.2s}
+.tool-card:nth-child(3){animation-delay:0.3s}
+.tool-card:nth-child(4){animation-delay:0.4s}
+.tool-card:nth-child(5){animation-delay:0.5s}
+.tool-card:nth-child(6){animation-delay:0.6s}
+
+@media(max-width:768px){
+  nav{padding:16px 20px}
+  .hero{padding:120px 20px 60px}
+  .filter-bar{padding:0 20px 40px}
+  .tools-section{padding:0 20px 60px}
+  .tools-grid{grid-template-columns:1fr}
+  .disclaimer{margin:0 20px 40px}
+  footer{flex-direction:column;gap:12px;text-align:center;padding:24px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">APEX <span>LIFT</span></div>
+  <a href="https://apexlift.info" class="nav-back">← Back to Apex Lift</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">Apex Lift Resource Hub</div>
+  <h1>TOOLS WE<br><span class="gold">RECOM</span><span class="outline">MEND</span></h1>
+  <p class="hero-desc">These are the exact tools we use to run Apex Lift and generate revenue for our clients. Every tool on this page has been personally tested by our team. We only recommend what we actually use.</p>
+  <div class="hero-note">
+    <span>⚡</span>
+    <span><strong>Affiliate disclosure:</strong> Some links below are affiliate links. If you sign up we may earn a commission — at no extra cost to you.</span>
+  </div>
+</div>
+
+<!-- FILTER -->
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filter('all',this)">All Tools</button>
+  <button class="filter-btn" onclick="filter('outreach',this)">Outreach</button>
+  <button class="filter-btn" onclick="filter('email',this)">Email Marketing</button>
+  <button class="filter-btn" onclick="filter('crm',this)">CRM</button>
+  <button class="filter-btn" onclick="filter('calls',this)">Calls & Comms</button>
+  <button class="filter-btn" onclick="filter('funnels',this)">Funnels</button>
+</div>
+
+<!-- TOOLS WE USE -->
+<div class="tools-section">
+  <div class="section-label">Tools We Use Daily at Apex Lift</div>
+  <div class="tools-grid" id="toolsGrid">
+
+    <!-- Instantly -->
+    <div class="tool-card gold" data-category="outreach">
+      <div class="we-use">We Use This</div>
+      <div class="tool-header">
+        <div class="tool-icon gold">⚡</div>
+        <span class="tool-badge gold">Cold Outreach</span>
+      </div>
+      <div class="tool-name">Instantly</div>
+      <div class="tool-category">Cold Email Automation</div>
+      <div class="tool-desc">The outreach tool that powers ARIA — our AI agent who contacts hundreds of business owners every month. Instantly automates cold email campaigns with advanced deliverability, warmup, and analytics built in.</div>
+      <ul class="tool-features">
+        <li>Automated email warmup — protects sender reputation</li>
+        <li>Multi-account sending from one dashboard</li>
+        <li>Smart reply detection — stops sequences automatically</li>
+        <li>Advanced analytics — open rates, click rates, replies</li>
+        <li>1,000 contacts on Growth plan</li>
+      </ul>
+      <div class="tool-footer">
+        <div class="tool-commission">From <strong>$30/month</strong></div>
+        <a href="https://refer.instantly.ai/cwdhqa3as86j" target="_blank" class="tool-cta gold">Try Free →</a>
+      </div>
+    </div>
+
+    <!-- Systeme.io -->
+    <div class="tool-card green" data-category="funnels email">
+      <div class="we-use">We Use This</div>
+      <div class="tool-header">
+        <div class="tool-icon green">🚀</div>
+        <span class="tool-badge green">All-In-One</span>
+      </div>
+      <div class="tool-name">Systeme.io</div>
+      <div class="tool-category">Funnels · Email · Courses</div>
+      <div class="tool-desc">The most complete all-in-one marketing platform we've found — and the best value by far. Build sales funnels, run email campaigns, host courses, and automate your entire customer journey in one place.</div>
+      <ul class="tool-features">
+        <li>Sales funnel builder — no coding required</li>
+        <li>Email marketing and automation built in</li>
+        <li>Course and membership hosting</li>
+        <li>Affiliate programme management</li>
+        <li>Free plan available — genuinely free forever</li>
+      </ul>
+      <div class="tool-footer">
+        <div class="tool-commission">From <strong>Free</strong></div>
+        <a href="https://systeme.io/?sa=sa02699346818cf2f877ae9a799aa66752ca533131" target="_blank" class="tool-cta green">Try Free →</a>
+      </div>
+    </div>
+
+    <!-- KrispCall -->
+    <div class="tool-card blue" data-category="calls">
+      <div class="tool-header">
+        <div class="tool-icon blue">📞</div>
+        <span class="tool-badge blue">Calls & Comms</span>
+      </div>
+      <div class="tool-name">KrispCall</div>
+      <div class="tool-category">AI Cloud Telephony</div>
+      <div class="tool-desc">AI-powered cloud telephony used by 9,000+ businesses across 154 countries. Virtual numbers, smart call routing, CRM integrations, and real-time analytics — perfect for teams handling high volumes of calls or scaling operations globally.</div>
+      <ul class="tool-features">
+        <li>Global virtual phone numbers — 154 countries</li>
+        <li>Smart call routing and IVR</li>
+        <li>CRM integrations — HubSpot, Salesforce, and more</li>
+        <li>Power Dialer for high-volume outreach</li>
+        <li>Real-time call analytics and recording</li>
+      </ul>
+      <div class="tool-footer">
+        <div class="tool-commission">From <strong>$15/month</strong></div>
+        <a href="https://try.krispcall.com/y7exytylqucy" target="_blank" class="tool-cta blue">Try Free →</a>
+      </div>
+    </div>
+
+    <!-- Capsule CRM -->
+    <div class="tool-card gold" data-category="crm">
+      <div class="tool-header">
+        <div class="tool-icon gold">💼</div>
+        <span class="tool-badge gold">CRM</span>
+      </div>
+      <div class="tool-name">Capsule</div>
+      <div class="tool-category">Simple CRM for Growing Teams</div>
+      <div class="tool-desc">The CRM we recommend to most of our clients — simple enough to actually use, powerful enough to track every lead, deal, and client relationship. No bloat. No 6-month implementation. Just a clean CRM that works from day one.</div>
+      <ul class="tool-features">
+        <li>Contact and deal management</li>
+        <li>Email integration — Gmail and Outlook</li>
+        <li>Sales pipeline with drag and drop</li>
+        <li>Task and activity tracking</li>
+        <li>250 contacts free — no card needed</li>
+      </ul>
+      <div class="tool-footer">
+        <div class="tool-commission">From <strong>Free</strong></div>
+        <a href="https://get.capsulenow.io/sp02f9vzcb43" target="_blank" class="tool-cta gold">Try Free →</a>
+      </div>
+    </div>
+
+    <!-- Brevo -->
+    <div class="tool-card cyan" data-category="email">
+      <div class="tool-header">
+        <div class="tool-icon cyan">📧</div>
+        <span class="tool-badge cyan">Email Marketing</span>
+      </div>
+      <div class="tool-name">Brevo</div>
+      <div class="tool-category">Email Marketing & Automation</div>
+      <div class="tool-desc">Our go-to email marketing platform recommendation for businesses that need professional email campaigns without the Klaviyo price tag. Brevo handles email, SMS, WhatsApp, and CRM — all from one dashboard.</div>
+      <ul class="tool-features">
+        <li>Drag and drop email builder</li>
+        <li>Marketing automation workflows</li>
+        <li>SMS and WhatsApp campaigns</li>
+        <li>Transactional email — receipts, confirmations</li>
+        <li>300 emails/day free — no card required</li>
+      </ul>
+      <div class="tool-footer">
+        <div class="tool-commission">From <strong>Free</strong></div>
+        <a href="https://get.brevo.com/jn1i81hlh3cg" target="_blank" class="tool-cta cyan">Try Brevo →</a>
+      </div>
+    </div>
+
+    <!-- FlyGuard -->
+    <div class="tool-card gold" data-category="other">
+      <div class="tool-header">
+        <div class="tool-icon gold">🛡️</div>
+        <span class="tool-badge gold">Drone Compliance</span>
+      </div>
+      <div class="tool-name">FlyGuard</div>
+      <div class="tool-category">AI Drone Compliance Platform</div>
+      <div class="tool-desc">Built by our founder — FlyGuard is the all-in-one drone compliance platform for commercial pilots and fleet operators. AI risk assessment, automatic flight logging, NDAA verification, and compliance reports for FAA, UK CAA, EASA, and more.</div>
+      <ul class="tool-features">
+        <li>AI pre-flight risk assessment</li>
+        <li>Automatic flight logbook — DJI, Autel, Parrot sync</li>
+        <li>NDAA Verifier — 163 drones, 31 manufacturers</li>
+        <li>Compliance reports — FAA, CAA, EASA, Transport Canada</li>
+        <li>Free trial available</li>
+      </ul>
+      <div class="tool-footer">
+        <div class="tool-commission">From <strong>£9/month</strong></div>
+        <a href="https://flyguard.net" target="_blank" class="tool-cta gold">Try FlyGuard →</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DISCLAIMER -->
+<div class="disclaimer">
+  <div class="disclaimer-title">Affiliate Disclosure</div>
+  <p>Some links on this page are affiliate links. This means if you click through and make a purchase or sign up, Apex Lift may earn a commission — at zero additional cost to you. We only recommend tools we have personally tested and genuinely use or believe in. Our recommendations are never influenced by commission rates.</p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">APEX <span>LIFT</span></div>
+  <div class="footer-copy">© 2026 Apex Lift · grow@apexlift.info · apexlift.info</div>
+</footer>
+
+<script>
+function filter(category, btn) {
+  // Update active button
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Filter cards
+  document.querySelectorAll('.tool-card').forEach(card => {
+    const cats = card.dataset.category || '';
+    if (category === 'all' || cats.includes(category)) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+
+</body>
+</html>
