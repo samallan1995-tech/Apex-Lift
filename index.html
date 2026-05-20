@@ -307,20 +307,22 @@ footer { padding: 48px 60px; border-top: 1px solid var(--border); display: flex;
       <div class="contact-detail"><span>🔒</span><div><strong>No commitment. No upfront cost.</strong></div></div>
     </div>
     <div class="reveal">
-      <form class="form" id="contactForm" onsubmit="handleSubmit(event)">
+            <form class="form" id="contactForm" action="https://formspree.io/f/xzdwdqpn" method="POST">
         <div class="form-row">
-          <div class="form-group"><label>First Name</label><input type="text" placeholder="James" required></div>
-          <div class="form-group"><label>Last Name</label><input type="text" placeholder="Mitchell" required></div>
+          <div class="form-group"><label>First Name</label><input type="text" name="First Name" placeholder="James" required></div>
+          <div class="form-group"><label>Last Name</label><input type="text" name="Last Name" placeholder="Mitchell" required></div>
         </div>
-        <div class="form-group"><label>Business Email</label><input type="email" placeholder="james@yourbusiness.com" required></div>
-        <div class="form-group"><label>Company Name</label><input type="text" placeholder="Your Company Ltd" required></div>
+        <div class="form-group"><label>Business Email</label><input type="email" name="Business Email" placeholder="james@yourbusiness.com" required></div>
+        <div class="form-group"><label>Company Name</label><input type="text" name="Company Name" placeholder="Your Company Ltd" required></div>
         <div class="form-row">
-          <div class="form-group"><label>Monthly Revenue</label><select required><option value="" disabled selected>Select range</option><option>£5k – £20k / month</option><option>£20k – £50k / month</option><option>£50k – £150k / month</option><option>£150k – £500k / month</option><option>£500k+ / month</option></select></div>
-          <div class="form-group"><label>Business Type</label><select required><option value="" disabled selected>Select type</option><option>E-Commerce</option><option>SaaS</option><option>D2C Brand</option><option>Service Business</option><option>Other</option></select></div>
+          <div class="form-group"><label>Monthly Revenue</label><select name="Monthly Revenue" required><option value="" disabled selected>Select range</option><option>£5k – £20k / month</option><option>£20k – £50k / month</option><option>£50k – £150k / month</option><option>£150k – £500k / month</option><option>£500k+ / month</option></select></div>
+          <div class="form-group"><label>Business Type</label><select name="Business Type" required><option value="" disabled selected>Select type</option><option>E-Commerce</option><option>SaaS</option><option>D2C Brand</option><option>Service Business</option><option>Other</option></select></div>
         </div>
-        <div class="form-group"><label>Biggest Growth Challenge</label><textarea placeholder="Tell us where you're leaving money on the table..."></textarea></div>
+        <div class="form-group"><label>Biggest Growth Challenge</label><textarea name="Biggest Growth Challenge" placeholder="Tell us where you're leaving money on the table..."></textarea></div>
+        <input type="hidden" name="_subject" value="New Apex Lift Lead!">
+        <input type="hidden" name="_next" value="https://apexlift.info/?submitted=true">
         <div class="form-submit"><button type="submit" class="submit-btn">Request Free Audit →</button></div>
-      </form>
+            </form>
       <div class="thank-you" id="thankYou"><h3>✓ REQUEST SENT</h3><p>Our team will reach out within 2 hours with your free revenue audit.</p></div>
     </div>
   </div>
@@ -348,7 +350,6 @@ animRing();
 document.querySelectorAll('a, button, input, select, textarea').forEach(el => { el.addEventListener('mouseenter', () => { cursor.style.transform = 'scale(2.5)'; ring.style.width = '56px'; ring.style.height = '56px'; }); el.addEventListener('mouseleave', () => { cursor.style.transform = 'scale(1)'; ring.style.width = '36px'; ring.style.height = '36px'; }); });
 window.addEventListener('scroll', () => { document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 60); });
 const reveals = document.querySelectorAll('.reveal');
-const observer = new IntersectionObserver(entries => { entries.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 80); } }); }, { threshold: 0.1 });
 reveals.forEach(r => observer.observe(r));
 function handleSubmit(e) { e.preventDefault(); const form = document.getElementById('contactForm'); fetch('https://formspree.io/f/xzdwdqpn', { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } }).then(r => { if (r.ok) { form.style.display = 'none'; document.getElementById('thankYou').style.display = 'block'; } }); }
 document.querySelectorAll('a[href^="#"]').forEach(a => { a.addEventListener('click', e => { e.preventDefault(); const target = document.querySelector(a.getAttribute('href')); if (target) target.scrollIntoView({ behavior: 'smooth' }); }); });
