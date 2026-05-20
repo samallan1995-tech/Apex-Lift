@@ -350,7 +350,7 @@ window.addEventListener('scroll', () => { document.getElementById('nav').classLi
 const reveals = document.querySelectorAll('.reveal');
 const observer = new IntersectionObserver(entries => { entries.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 80); } }); }, { threshold: 0.1 });
 reveals.forEach(r => observer.observe(r));
-function handleSubmit(e) { e.preventDefault(); document.getElementById('contactForm').style.display = 'none'; document.getElementById('thankYou').style.display = 'block'; }
+function handleSubmit(e) { e.preventDefault(); const form = document.getElementById('contactForm'); fetch('https://formspree.io/f/xzdwdqpn', { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } }).then(r => { if (r.ok) { form.style.display = 'none'; document.getElementById('thankYou').style.display = 'block'; } }); }
 document.querySelectorAll('a[href^="#"]').forEach(a => { a.addEventListener('click', e => { e.preventDefault(); const target = document.querySelector(a.getAttribute('href')); if (target) target.scrollIntoView({ behavior: 'smooth' }); }); });
 </script>
 </body>
