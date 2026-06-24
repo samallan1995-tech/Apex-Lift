@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 const navItems = [
   { href: '/dashboard/forms', label: 'Forms', icon: '📋' },
   { href: '/dashboard/templates', label: 'Templates', icon: '🗂️' },
+  { href: '/dashboard/billing', label: 'Billing', icon: '💳' },
+  { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ]
 
 export default function DashboardNav({ userEmail }: { userEmail: string }) {

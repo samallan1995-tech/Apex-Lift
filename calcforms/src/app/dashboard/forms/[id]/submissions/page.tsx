@@ -41,6 +41,11 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ id
             <Link href={`/dashboard/forms/${id}`} className="text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 px-4 py-2 rounded-lg transition-colors">
               Edit form
             </Link>
+            {(submissions && submissions.length > 0) && (
+              <a href={`/api/submissions/export?form_id=${id}`} className="text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                ↓ CSV
+              </a>
+            )}
             <Link href={`/dashboard/forms/${id}/embed`} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-4 py-2 rounded-lg transition-colors">
               Embed & share
             </Link>
