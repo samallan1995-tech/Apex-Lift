@@ -9,6 +9,7 @@ import { generateContractNumber, generateInvoiceNumber } from "@/lib/utils";
 import { resend, EMAIL_FROM } from "@/lib/resend";
 import { ActivityType, ContractStatus, MilestoneStatus, InvoiceStatus } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
+import { PLANS } from "@/lib/stripe";
 
 async function getAuthContext() {
   const { userId } = await auth();
@@ -68,6 +69,14 @@ export async function createContract(data: ContractInput) {
 
   const { milestones, templateId, ...contractData } = data;
   const validated = contractSchema.parse(contractData);
+
+  const plan = PLANS[organization.plan as keyof typeof PLANS];
+  if (plan?.limits.contracts !== Infinity) {
+    const contractCount = await prisma.contract.count({ where: { organizationId: organization.id } });
+    if (contractCount >= plan.limits.contracts) {
+      throw new Error(`Your ${plan.name} plan allows up to ${plan.limits.contracts} contracts. Upgrade to add more.`);
+    }
+  }
 
   const contractNumber = generateContractNumber();
 
@@ -171,7 +180,10 @@ export async function sendContract(id: string) {
 
   if (!contract) throw new Error("Contract not found");
   if (contract.status === ContractStatus.SIGNED) {
-    throw new Error("Cannot send an already signed contract");
+    throw new Error("Contract has already been signed");
+  }
+  if (!["DRAFT", "SENT", "VIEWED"].includes(contract.status)) {
+    throw new Error("Contract cannot be sent in its current state");
   }
 
   const updated = await prisma.contract.update({

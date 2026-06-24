@@ -53,27 +53,33 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent): Promise<v
     return;
   }
 
-  // Mark invoice as PAID
-  await prisma.invoice.update({
-    where: { id: invoice.id },
-    data: {
-      status: InvoiceStatus.PAID,
-      paidAt: new Date(),
-    },
-  });
+  // Idempotency guard: if already paid, skip all side-effects (handles webhook retries)
+  const alreadyPaid = invoice.status === InvoiceStatus.PAID;
 
-  // Update or create the Payment record
   const existingPayment = invoice.payments[0];
-  if (existingPayment) {
-    await prisma.payment.update({
-      where: { id: existingPayment.id },
-      data: {
-        status: PaymentStatus.COMPLETED,
-        paymentDate: new Date(),
-        stripeChargeId: typeof pi.latest_charge === "string" ? pi.latest_charge : undefined,
-        paymentMethod: pi.payment_method_types[0] ?? undefined,
-      },
+
+  // Update payment record and invoice atomically
+  const paidAt = existingPayment?.paymentDate ?? new Date();
+
+  if (!alreadyPaid) {
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { status: InvoiceStatus.PAID, paidAt },
     });
+  }
+
+  if (existingPayment) {
+    if (existingPayment.status !== PaymentStatus.COMPLETED) {
+      await prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: {
+          status: PaymentStatus.COMPLETED,
+          paymentDate: paidAt,
+          stripeChargeId: typeof pi.latest_charge === "string" ? pi.latest_charge : undefined,
+          paymentMethod: pi.payment_method_types[0] ?? undefined,
+        },
+      });
+    }
   } else {
     await prisma.payment.create({
       data: {
@@ -81,7 +87,7 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent): Promise<v
         amount: invoice.total,
         currency: invoice.currency,
         status: PaymentStatus.COMPLETED,
-        paymentDate: new Date(),
+        paymentDate: paidAt,
         stripePaymentIntent: pi.id,
         stripeChargeId: typeof pi.latest_charge === "string" ? pi.latest_charge : undefined,
         paymentMethod: pi.payment_method_types[0] ?? undefined,
@@ -89,24 +95,26 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent): Promise<v
     });
   }
 
-  // Log activity
-  await logActivity(
-    invoice.organizationId,
-    ActivityType.PAYMENT_RECEIVED,
-    `Payment of ${new Intl.NumberFormat("en-GB", { style: "currency", currency: invoice.currency }).format(Number(invoice.total))} received for invoice ${invoice.invoiceNumber}`,
-    { entityId: invoice.id, entityType: "Invoice", metadata: { paymentIntentId: pi.id } }
-  );
-
-  // Send confirmation email to client
-  try {
-    await sendPaymentReceivedEmail(
-      invoice.client.email,
-      invoice.invoiceNumber,
-      Number(invoice.total),
-      invoice.organization.companyName
+  if (!alreadyPaid) {
+    // Log activity only on first successful processing
+    await logActivity(
+      invoice.organizationId,
+      ActivityType.PAYMENT_RECEIVED,
+      `Payment of ${new Intl.NumberFormat("en-GB", { style: "currency", currency: invoice.currency }).format(Number(invoice.total))} received for invoice ${invoice.invoiceNumber}`,
+      { entityId: invoice.id, entityType: "Invoice", metadata: { paymentIntentId: pi.id } }
     );
-  } catch (err) {
-    console.error("[stripe/webhook] Failed to send payment confirmation email:", err);
+
+    // Send confirmation email only once
+    try {
+      await sendPaymentReceivedEmail(
+        invoice.client.email,
+        invoice.invoiceNumber,
+        Number(invoice.total),
+        invoice.organization.companyName
+      );
+    } catch (err) {
+      console.error("[stripe/webhook] Failed to send payment confirmation email:", err);
+    }
   }
 }
 

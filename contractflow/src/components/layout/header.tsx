@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,34 +14,27 @@ import {
   Settings,
   LogOut,
   X,
+  FileTextIcon,
+  UsersIcon,
+  ReceiptIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
-const MOCK_NOTIFICATIONS = [
-  {
-    id: "1",
-    title: "Contract signed",
-    body: "Acme Corp has signed the Q1 Service Agreement.",
-    time: "2 min ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "Invoice overdue",
-    body: "Invoice #INV-202406-021 is 3 days overdue.",
-    time: "1 hr ago",
-    unread: true,
-  },
-  {
-    id: "3",
-    title: "New client added",
-    body: "Horizon Labs was added to your client list.",
-    time: "Yesterday",
-    unread: true,
-  },
-];
+type SearchResult = {
+  type: "client" | "contract" | "invoice";
+  id: string;
+  title: string;
+  subtitle: string;
+  url: string;
+};
+
+const RESULT_ICONS: Record<string, React.ElementType> = {
+  client: UsersIcon,
+  contract: FileTextIcon,
+  invoice: ReceiptIcon,
+};
 
 type ThemeOption = "light" | "dark" | "system";
 
@@ -63,10 +56,32 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  type Notification = { id: string; title: string; message: string; read: boolean; link?: string | null; createdAt: string };
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications ?? []);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  async function markAllRead() {
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -74,11 +89,36 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const themeMenuRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Debounced live search
+  const runSearch = useCallback(async (q: string) => {
+    if (q.length < 2) { setSearchResults([]); return; }
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setSearchResults(data.results ?? []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (searchQuery.trim().length < 2) { setSearchResults([]); return; }
+    searchTimer.current = setTimeout(() => runSearch(searchQuery.trim()), 300);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery, runSearch]);
 
   // Close dropdowns on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchFocused(false);
+      }
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
       }
@@ -99,11 +139,15 @@ export function Header({ onMenuClick }: HeaderProps) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery("");
       setSearchFocused(false);
+      setSearchResults([]);
     }
   }
 
-  function markAllRead() {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  function handleResultClick(url: string) {
+    router.push(url);
+    setSearchQuery("");
+    setSearchFocused(false);
+    setSearchResults([]);
   }
 
   const currentThemeIcon = themeOptions.find((t) => t.value === theme) ?? themeOptions[2];
@@ -123,39 +167,64 @@ export function Header({ onMenuClick }: HeaderProps) {
       </button>
 
       {/* Search */}
-      <form
-        onSubmit={handleSearch}
-        className={cn(
-          "relative flex items-center flex-1 max-w-md transition-all",
-          searchFocused ? "max-w-lg" : ""
-        )}
-      >
-        <Search className="absolute left-3 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Search contracts, clients, invoices…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          className={cn(
-            "w-full h-9 pl-9 pr-9 text-sm bg-gray-50 dark:bg-gray-800 border rounded-lg outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100",
-            searchFocused
-              ? "border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/20 bg-white dark:bg-gray-800"
-              : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+      <div ref={searchRef} className={cn("relative flex items-center flex-1 max-w-md transition-all", searchFocused ? "max-w-lg" : "")}>
+        <form onSubmit={handleSearch} className="w-full">
+          <Search className="absolute left-3 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none z-10" />
+          <input
+            type="text"
+            placeholder="Search contracts, clients, invoices…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            className={cn(
+              "w-full h-9 pl-9 pr-9 text-sm bg-gray-50 dark:bg-gray-800 border rounded-lg outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-gray-100",
+              searchFocused
+                ? "border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/20 bg-white dark:bg-gray-800"
+                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+            )}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(""); setSearchResults([]); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           )}
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            className="absolute right-2.5 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            aria-label="Clear search"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        </form>
+
+        {/* Live results dropdown */}
+        {searchFocused && (searchResults.length > 0 || searchLoading) && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+            {searchLoading ? (
+              <div className="px-4 py-3 text-sm text-muted-foreground">Searching…</div>
+            ) : (
+              <ul>
+                {searchResults.map((r) => {
+                  const Icon = RESULT_ICONS[r.type] ?? FileTextIcon;
+                  return (
+                    <li key={`${r.type}-${r.id}`}>
+                      <button
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
+                        onClick={() => handleResultClick(r.url)}
+                      >
+                        <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{r.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{r.subtitle}</p>
+                        </div>
+                        <span className="ml-auto text-xs text-muted-foreground capitalize shrink-0">{r.type}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         )}
-      </form>
+      </div>
 
       <div className="ml-auto flex items-center gap-1">
         {/* Theme toggle */}
@@ -232,31 +301,35 @@ export function Header({ onMenuClick }: HeaderProps) {
                     No notifications
                   </li>
                 ) : (
-                  notifications.map((n) => (
-                    <li
-                      key={n.id}
-                      className={cn(
-                        "flex gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700",
-                        n.unread && "bg-indigo-50/50 dark:bg-indigo-950/30"
-                      )}
-                    >
-                      {n.unread && (
-                        <span className="mt-1.5 w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                      )}
-                      {!n.unread && <span className="mt-1.5 w-2 h-2 shrink-0" />}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {n.title}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {n.body}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                          {n.time}
-                        </p>
-                      </div>
-                    </li>
-                  ))
+                  notifications.map((n) => {
+                    const inner = (
+                      <>
+                        {!n.read && (
+                          <span className="mt-1.5 w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                        )}
+                        {n.read && <span className="mt-1.5 w-2 h-2 shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{n.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{n.message}</p>
+                        </div>
+                      </>
+                    );
+                    return (
+                      <li
+                        key={n.id}
+                        className={cn(
+                          "flex gap-3 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700",
+                          !n.read && "bg-indigo-50/50 dark:bg-indigo-950/30"
+                        )}
+                      >
+                        {n.link ? (
+                          <Link href={n.link} className="flex gap-3 w-full" onClick={() => setNotifOpen(false)}>
+                            {inner}
+                          </Link>
+                        ) : inner}
+                      </li>
+                    );
+                  })
                 )}
               </ul>
 

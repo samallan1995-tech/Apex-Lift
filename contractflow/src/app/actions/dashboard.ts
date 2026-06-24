@@ -184,31 +184,35 @@ export async function getRevenueChart(orgId: string): Promise<RevenueDataPoint[]
   if (organization.id !== orgId) throw new Error("Forbidden");
 
   const now = new Date();
-  const months: RevenueDataPoint[] = [];
+  const windowStart = startOfMonth(subMonths(now, 11));
 
+  // Single query for all 12 months — fetch all paid invoices in range, group in JS
+  const paidInvoices = await prisma.invoice.findMany({
+    where: {
+      organizationId: orgId,
+      status: InvoiceStatus.PAID,
+      paidAt: { gte: windowStart, lte: endOfMonth(now) },
+    },
+    select: { total: true, paidAt: true },
+  });
+
+  // Build a map keyed by "MMM yyyy"
+  const byMonth = new Map<string, { revenue: number; invoiceCount: number }>();
   for (let i = 11; i >= 0; i--) {
-    const date = subMonths(now, i);
-    const start = startOfMonth(date);
-    const end = endOfMonth(date);
-
-    const result = await prisma.invoice.aggregate({
-      where: {
-        organizationId: orgId,
-        status: InvoiceStatus.PAID,
-        paidAt: { gte: start, lte: end },
-      },
-      _sum: { total: true },
-      _count: { id: true },
-    });
-
-    months.push({
-      month: format(date, "MMM yyyy"),
-      revenue: Number(result._sum.total ?? 0),
-      invoiceCount: result._count.id,
-    });
+    const label = format(subMonths(now, i), "MMM yyyy");
+    byMonth.set(label, { revenue: 0, invoiceCount: 0 });
+  }
+  for (const inv of paidInvoices) {
+    if (!inv.paidAt) continue;
+    const label = format(inv.paidAt, "MMM yyyy");
+    const entry = byMonth.get(label);
+    if (entry) {
+      entry.revenue += Number(inv.total);
+      entry.invoiceCount += 1;
+    }
   }
 
-  return months;
+  return Array.from(byMonth.entries()).map(([month, data]) => ({ month, ...data }));
 }
 
 export async function getRevenueForecast(orgId: string): Promise<ForecastDataPoint[]> {
@@ -217,45 +221,44 @@ export async function getRevenueForecast(orgId: string): Promise<ForecastDataPoi
   if (organization.id !== orgId) throw new Error("Forbidden");
 
   const now = new Date();
-  const forecast: ForecastDataPoint[] = [];
 
-  for (let i = 1; i <= 3; i++) {
+  // Fetch all 3 forecast months in parallel
+  const forecastMonths = [1, 2, 3].map((i) => {
     const date = addMonths(now, i);
-    const start = startOfMonth(date);
-    const end = endOfMonth(date);
+    return { month: format(date, "MMM yyyy"), start: startOfMonth(date), end: endOfMonth(date) };
+  });
 
-    // Pending milestones due in this month
-    const pendingMilestones = await prisma.contractMilestone.aggregate({
-      where: {
-        contract: { organizationId: orgId },
-        status: { in: [MilestoneStatus.PENDING, MilestoneStatus.INVOICED] },
-        dueDate: { gte: start, lte: end },
-      },
-      _sum: { amount: true },
-    });
+  const results = await Promise.all(
+    forecastMonths.map(({ start, end }) =>
+      Promise.all([
+        prisma.contractMilestone.aggregate({
+          where: {
+            contract: { organizationId: orgId },
+            status: { in: [MilestoneStatus.PENDING, MilestoneStatus.INVOICED] },
+            dueDate: { gte: start, lte: end },
+          },
+          _sum: { amount: true },
+        }),
+        prisma.invoice.aggregate({
+          where: {
+            organizationId: orgId,
+            status: { in: [InvoiceStatus.SENT, InvoiceStatus.OVERDUE, InvoiceStatus.DRAFT] },
+            dueDate: { gte: start, lte: end },
+          },
+          _sum: { total: true },
+        }),
+      ])
+    )
+  );
 
-    // Sent/outstanding invoices due in this month
-    const pendingInvoices = await prisma.invoice.aggregate({
-      where: {
-        organizationId: orgId,
-        status: { in: [InvoiceStatus.SENT, InvoiceStatus.OVERDUE, InvoiceStatus.DRAFT] },
-        dueDate: { gte: start, lte: end },
-      },
-      _sum: { total: true },
-    });
-
-    const milestoneAmount = Number(pendingMilestones._sum.amount ?? 0);
-    const invoiceAmount = Number(pendingInvoices._sum.total ?? 0);
-
-    // Use the max to avoid double-counting milestones that already have invoices
-    const projected = Math.max(milestoneAmount, invoiceAmount);
-
-    forecast.push({
-      month: format(date, "MMM yyyy"),
-      projected,
+  return forecastMonths.map(({ month }, i) => {
+    const [milestoneAgg, invoiceAgg] = results[i];
+    const milestoneAmount = Number(milestoneAgg._sum.amount ?? 0);
+    const invoiceAmount = Number(invoiceAgg._sum.total ?? 0);
+    return {
+      month,
+      projected: Math.max(milestoneAmount, invoiceAmount),
       pending: milestoneAmount + invoiceAmount,
-    });
-  }
-
-  return forecast;
+    };
+  });
 }

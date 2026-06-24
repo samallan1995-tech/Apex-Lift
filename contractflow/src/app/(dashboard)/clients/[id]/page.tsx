@@ -26,29 +26,33 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   });
   if (!user?.organization) redirect("/onboarding");
 
-  const client = await prisma.client.findFirst({
-    where: { id, organizationId: user.organization.id },
-    include: {
-      contracts: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
+  const [client, revenueAgg, outstandingAgg] = await Promise.all([
+    prisma.client.findFirst({
+      where: { id, organizationId: user.organization.id },
+      include: {
+        contracts: { orderBy: { createdAt: "desc" }, take: 10 },
+        invoices: { orderBy: { createdAt: "desc" }, take: 10 },
       },
-      invoices: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
+    }),
+    // Accurate aggregates over ALL invoices — not limited by take:10
+    prisma.invoice.aggregate({
+      where: { clientId: id, organizationId: user.organization.id, status: "PAID" },
+      _sum: { total: true },
+    }),
+    prisma.invoice.aggregate({
+      where: {
+        clientId: id,
+        organizationId: user.organization.id,
+        status: { in: ["SENT", "OVERDUE"] },
       },
-    },
-  });
+      _sum: { total: true },
+    }),
+  ]);
 
   if (!client) notFound();
 
-  const totalRevenue = client.invoices
-    .filter((i) => i.status === "PAID")
-    .reduce((sum, i) => sum + Number(i.total), 0);
-
-  const outstandingBalance = client.invoices
-    .filter((i) => ["SENT", "OVERDUE"].includes(i.status))
-    .reduce((sum, i) => sum + Number(i.total), 0);
+  const totalRevenue = Number(revenueAgg._sum.total ?? 0);
+  const outstandingBalance = Number(outstandingAgg._sum.total ?? 0);
 
   return (
     <div className="space-y-6">

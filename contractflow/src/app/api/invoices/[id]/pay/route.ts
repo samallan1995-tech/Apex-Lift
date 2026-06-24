@@ -110,7 +110,16 @@ export async function POST(
     automatic_payment_methods: { enabled: true },
   });
 
-  // Create a pending Payment record linked to this PaymentIntent
+  if (!paymentIntent.client_secret) {
+    // Cancel the PaymentIntent so it can't be used and doesn't linger in Stripe
+    await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
+    return Response.json(
+      { error: "Failed to create payment intent — missing client secret" },
+      { status: 500 }
+    );
+  }
+
+  // Only create the Payment record once we have a valid client_secret
   await prisma.payment.create({
     data: {
       invoiceId: invoice.id,
@@ -120,13 +129,6 @@ export async function POST(
       stripePaymentIntent: paymentIntent.id,
     },
   });
-
-  if (!paymentIntent.client_secret) {
-    return Response.json(
-      { error: "Failed to create payment intent — missing client secret" },
-      { status: 500 }
-    );
-  }
 
   return Response.json({
     clientSecret: paymentIntent.client_secret,

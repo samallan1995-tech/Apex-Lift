@@ -1,11 +1,20 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { stripe } from "@/lib/stripe";
+import { stripe, PLANS } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+const ALLOWED_PRICE_IDS = new Set(
+  Object.values(PLANS)
+    .map((p) => p.priceId)
+    .filter(Boolean)
+);
+
 const bodySchema = z.object({
-  priceId: z.string().min(1),
+  priceId: z.string().min(1).refine(
+    (id) => ALLOWED_PRICE_IDS.has(id),
+    { message: "Invalid price ID" }
+  ),
   organizationId: z.string().min(1),
 });
 

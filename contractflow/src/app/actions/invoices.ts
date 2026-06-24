@@ -354,18 +354,20 @@ export async function getInvoices(orgId: string, filters?: InvoiceFilters) {
 
   const now = new Date();
 
+  // Build status filter: overdue takes precedence over a caller-supplied status
+  // to avoid the spread silently overwriting it.
+  const statusFilter = filters?.overdue
+    ? { status: { in: [InvoiceStatus.SENT, InvoiceStatus.OVERDUE] }, dueDate: { lt: now } }
+    : filters?.status
+    ? { status: filters.status }
+    : {};
+
   const invoices = await prisma.invoice.findMany({
     where: {
       organizationId: orgId,
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...statusFilter,
       ...(filters?.clientId ? { clientId: filters.clientId } : {}),
       ...(filters?.contractId ? { contractId: filters.contractId } : {}),
-      ...(filters?.overdue
-        ? {
-            status: { in: [InvoiceStatus.SENT, InvoiceStatus.OVERDUE] },
-            dueDate: { lt: now },
-          }
-        : {}),
     },
     include: {
       client: {

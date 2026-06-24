@@ -113,19 +113,30 @@ export async function getTeamMembers(orgId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const members = await prisma.user.findMany({
-    where: { organizationId: orgId },
-    orderBy: { createdAt: "asc" },
+  // Verify the caller belongs to the requested organisation
+  const caller = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { organizationId: true },
   });
 
-  const pendingInvites = await prisma.teamInvite.findMany({
-    where: {
-      organizationId: orgId,
-      accepted: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  if (!caller || caller.organizationId !== orgId) {
+    throw new Error("Forbidden");
+  }
+
+  const [members, pendingInvites] = await Promise.all([
+    prisma.user.findMany({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.teamInvite.findMany({
+      where: {
+        organizationId: orgId,
+        accepted: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   return { members, pendingInvites };
 }

@@ -102,7 +102,13 @@ export function InvoiceDetailActions({ invoice }: InvoiceDetailActionsProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {invoice.status !== "PAID" && invoice.status === "SENT" && (
+          <DropdownMenuItem asChild>
+            <a href={`/api/invoices/${invoice.id}/pdf`} download>
+              <DownloadIcon className="w-4 h-4 mr-2" />
+              Download PDF
+            </a>
+          </DropdownMenuItem>
+          {invoice.status === "SENT" && (
             <DropdownMenuItem onClick={handleSend} disabled={isPending}>
               <SendIcon className="w-4 h-4 mr-2" />
               Resend Invoice

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { ActivityType, ContractStatus } from "@prisma/client";
 import { sendContractSignedEmail } from "@/lib/emails";
+import { generateInvoiceNumber } from "@/lib/utils";
 
 export async function getContractForSigning(contractId: string) {
   const contract = await prisma.contract.findUnique({
@@ -24,9 +25,10 @@ export async function getContractForSigning(contractId: string) {
     throw new Error("This contract is not available for signing");
   }
 
+  // Atomically transition SENT → VIEWED (idempotent if already VIEWED)
   if (contract.status === "SENT") {
-    await prisma.contract.update({
-      where: { id: contractId },
+    await prisma.contract.updateMany({
+      where: { id: contractId, status: ContractStatus.SENT },
       data: { status: ContractStatus.VIEWED },
     });
 
@@ -52,6 +54,33 @@ export async function signContract(
   signerIp: string,
   signerAgent: string
 ) {
+  // Use updateMany with a status filter — the WHERE clause acts as an optimistic lock.
+  // If count === 0 the contract was already signed (race condition handled).
+  const signedAt = new Date();
+
+  const { count } = await prisma.contract.updateMany({
+    where: {
+      id: contractId,
+      status: { in: [ContractStatus.SENT, ContractStatus.VIEWED] },
+    },
+    data: {
+      status: ContractStatus.SIGNED,
+      signedAt,
+      signatureData,
+      signerIp,
+      signerAgent,
+    },
+  });
+
+  if (count === 0) {
+    // Either doesn't exist or was already signed by a concurrent request
+    const existing = await prisma.contract.findUnique({ where: { id: contractId } });
+    if (!existing) throw new Error("Contract not found");
+    if (existing.status === "SIGNED") throw new Error("Contract already signed");
+    throw new Error("Contract cannot be signed");
+  }
+
+  // Re-fetch with relations for downstream use
   const contract = await prisma.contract.findUnique({
     where: { id: contractId },
     include: {
@@ -61,22 +90,7 @@ export async function signContract(
     },
   });
 
-  if (!contract) throw new Error("Contract not found");
-  if (contract.status === "SIGNED") throw new Error("Contract already signed");
-  if (!["SENT", "VIEWED"].includes(contract.status)) throw new Error("Contract cannot be signed");
-
-  const signedAt = new Date();
-
-  await prisma.contract.update({
-    where: { id: contractId },
-    data: {
-      status: ContractStatus.SIGNED,
-      signedAt,
-      signatureData,
-      signerIp,
-      signerAgent,
-    },
-  });
+  if (!contract) throw new Error("Contract not found after signing");
 
   await prisma.auditLog.create({
     data: {
@@ -105,45 +119,51 @@ export async function signContract(
     },
   });
 
-  const depositMilestone = contract.milestones.find(
-    (m) => m.title.toLowerCase().includes("deposit") && m.order === 0
-  ) || contract.milestones[0];
+  // Find deposit milestone: prefer one explicitly named "deposit" at any order,
+  // then fall back to order=0 — but only if it hasn't already been invoiced/paid.
+  const eligibleMilestones = contract.milestones.filter(
+    (m) => !["INVOICED", "PAID"].includes(m.status)
+  );
+
+  const depositMilestone =
+    eligibleMilestones.find((m) => m.title.toLowerCase().includes("deposit")) ??
+    eligibleMilestones.find((m) => m.order === 0) ??
+    eligibleMilestones[0];
 
   if (depositMilestone) {
-    const { generateInvoiceNumber } = await import("@/lib/utils");
     const invoiceNumber = generateInvoiceNumber();
-
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 7);
 
-    await prisma.invoice.create({
-      data: {
-        organizationId: contract.organizationId,
-        clientId: contract.clientId,
-        contractId,
-        milestoneId: depositMilestone.id,
-        invoiceNumber,
-        dueDate,
-        amount: depositMilestone.amount,
-        tax: 0,
-        total: depositMilestone.amount,
-        currency: contract.currency,
-        status: "DRAFT",
-        lineItems: [
-          {
-            description: `${depositMilestone.title} - ${contract.title}`,
-            quantity: 1,
-            unitPrice: Number(depositMilestone.amount),
-            amount: Number(depositMilestone.amount),
-          },
-        ],
-      },
-    });
-
-    await prisma.contractMilestone.update({
-      where: { id: depositMilestone.id },
-      data: { status: "INVOICED" },
-    });
+    await prisma.$transaction([
+      prisma.invoice.create({
+        data: {
+          organizationId: contract.organizationId,
+          clientId: contract.clientId,
+          contractId,
+          milestoneId: depositMilestone.id,
+          invoiceNumber,
+          dueDate,
+          amount: depositMilestone.amount,
+          tax: 0,
+          total: depositMilestone.amount,
+          currency: contract.currency,
+          status: "DRAFT",
+          lineItems: [
+            {
+              description: `${depositMilestone.title} - ${contract.title}`,
+              quantity: 1,
+              unitPrice: Number(depositMilestone.amount),
+              amount: Number(depositMilestone.amount),
+            },
+          ],
+        },
+      }),
+      prisma.contractMilestone.update({
+        where: { id: depositMilestone.id },
+        data: { status: "INVOICED" },
+      }),
+    ]);
 
     await prisma.activity.create({
       data: {

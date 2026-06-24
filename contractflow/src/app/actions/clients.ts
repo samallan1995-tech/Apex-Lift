@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { clientSchema } from "@/lib/validations";
 import { ActivityType } from "@prisma/client";
+import { PLANS } from "@/lib/stripe";
 
 async function getAuthContext() {
   const { userId } = await auth();
@@ -46,6 +47,14 @@ export async function createClient(data: ClientInput) {
   const { user, organization } = await getAuthContext();
 
   const validated = clientSchema.parse(data);
+
+  const plan = PLANS[organization.plan as keyof typeof PLANS];
+  if (plan?.limits.clients !== Infinity) {
+    const clientCount = await prisma.client.count({ where: { organizationId: organization.id } });
+    if (clientCount >= plan.limits.clients) {
+      throw new Error(`Your ${plan.name} plan allows up to ${plan.limits.clients} clients. Upgrade to add more.`);
+    }
+  }
 
   const client = await prisma.client.create({
     data: {
