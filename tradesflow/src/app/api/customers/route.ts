@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const q = searchParams.get('q')
 
   let query = supabase
-    .from('customers')
+    .from('tf_customers')
     .select('*')
     .eq('user_id', user.id)
     .order('name')
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
   const body = await req.json()
   const { data, error } = await supabase
-    .from('customers')
+    .from('tf_customers')
     .insert({ ...body, user_id: user.id })
     .select()
     .single()

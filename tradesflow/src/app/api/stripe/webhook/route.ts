@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object as import('stripe').Stripe.PaymentIntent
     await supabase
-      .from('invoices')
+      .from('tf_invoices')
       .update({ paid_at: new Date().toISOString(), payment_method: 'stripe', stripe_payment_intent_id: pi.id })
       .eq('stripe_payment_intent_id', pi.id)
   }
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const customerId = sub.customer as string
     const status = sub.status === 'active' ? 'pro' : 'trial'
     await supabase
-      .from('users')
+      .from('tf_users')
       .update({ subscription_tier: status })
       .eq('stripe_customer_id', customerId)
   }

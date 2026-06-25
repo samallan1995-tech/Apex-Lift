@@ -11,11 +11,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json()
 
   const { data, error } = await supabase
-    .from('jobs')
+    .from('tf_jobs')
     .update(body)
     .eq('id', id)
     .eq('user_id', user.id)
-    .select('*, engineer:engineers(*), customer:customers(*)')
+    .select('*, engineer:tf_engineers(*), customer:tf_customers(*)')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -30,7 +30,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { error } = await supabase
-    .from('jobs')
+    .from('tf_jobs')
     .delete()
     .eq('id', id)
     .eq('user_id', user.id)

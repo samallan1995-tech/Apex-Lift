@@ -26,7 +26,7 @@ export default function RegisterPage() {
       toast.error(error.message)
     } else if (data.user) {
       // Create user profile
-      await supabase.from('users').insert({
+      await supabase.from('tf_users').insert({
         id: data.user.id,
         email: form.email,
         business_name: form.businessName,

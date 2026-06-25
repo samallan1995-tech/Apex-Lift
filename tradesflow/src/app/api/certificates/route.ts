@@ -7,9 +7,9 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase
-    .from('certificates')
-    .select('*, engineer:engineers(*)')
-    .eq('engineers.user_id', user.id)
+    .from('tf_certificates')
+    .select('*, engineer:tf_engineers!inner(*)')
+    .eq('tf_engineers.user_id', user.id)
     .order('expiry_date')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -23,9 +23,9 @@ export async function POST(req: Request) {
 
   const body = await req.json()
   const { data, error } = await supabase
-    .from('certificates')
+    .from('tf_certificates')
     .insert(body)
-    .select('*, engineer:engineers(*)')
+    .select('*, engineer:tf_engineers(*)')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

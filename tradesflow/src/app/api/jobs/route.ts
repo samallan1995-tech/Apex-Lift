@@ -9,8 +9,8 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let query = supabase
-    .from('jobs')
-    .select('*, engineer:engineers(*), customer:customers(*)')
+    .from('tf_jobs')
+    .select('*, engineer:tf_engineers(*), customer:tf_customers(*)')
     .eq('user_id', user.id)
     .order('scheduled_date', { ascending: true })
 
@@ -32,18 +32,17 @@ export async function POST(req: Request) {
 
   const body = await req.json()
 
-  // Generate reference
   const { count } = await supabase
-    .from('jobs')
+    .from('tf_jobs')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
 
   const reference = `JOB-${String((count ?? 0) + 1).padStart(3, '0')}`
 
   const { data, error } = await supabase
-    .from('jobs')
+    .from('tf_jobs')
     .insert({ ...body, user_id: user.id, reference, status: 'scheduled' })
-    .select('*, engineer:engineers(*), customer:customers(*)')
+    .select('*, engineer:tf_engineers(*), customer:tf_customers(*)')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

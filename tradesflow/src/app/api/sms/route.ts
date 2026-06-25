@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import twilio from 'twilio'
 
 export async function POST(req: Request) {
   const supabase = await createClient()
@@ -10,8 +9,8 @@ export async function POST(req: Request) {
   const { job_id } = await req.json()
 
   const { data: job, error: jobError } = await supabase
-    .from('jobs')
-    .select('*, engineer:engineers(*), customer:customers(*)')
+    .from('tf_jobs')
+    .select('*, engineer:tf_engineers(*), customer:tf_customers(*)')
     .eq('id', job_id)
     .eq('user_id', user.id)
     .single()
@@ -27,6 +26,7 @@ export async function POST(req: Request) {
 
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
     try {
+      const twilio = (await import('twilio')).default
       const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
       const msg = await client.messages.create({
         body: message,
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
   }
 
-  await supabase.from('sms_logs').insert({
+  await supabase.from('tf_sms_logs').insert({
     job_id,
     customer_phone: customer.phone,
     message,

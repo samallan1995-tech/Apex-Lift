@@ -7,9 +7,8 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase
-    .from('quotes')
-    .select('*, job:jobs(*, customer:customers(*), engineer:engineers(*))')
-    .eq('jobs.user_id', user.id)
+    .from('tf_quotes')
+    .select('*, job:tf_jobs(*, customer:tf_customers(*), engineer:tf_engineers(*))')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -29,8 +28,8 @@ export async function POST(req: Request) {
   const total = subtotal + vat_amount
 
   const { data: job } = await supabase
-    .from('jobs')
-    .select('*, customer:customers(*)')
+    .from('tf_jobs')
+    .select('*, customer:tf_customers(*)')
     .eq('id', job_id)
     .single()
 
@@ -54,9 +53,9 @@ export async function POST(req: Request) {
   }
 
   const { data, error } = await supabase
-    .from('quotes')
+    .from('tf_quotes')
     .insert({ job_id, labour_cost, materials_cost, vat_amount, total, stripe_payment_link, status: 'draft' })
-    .select('*, job:jobs(*, customer:customers(*), engineer:engineers(*))')
+    .select('*, job:tf_jobs(*, customer:tf_customers(*), engineer:tf_engineers(*))')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

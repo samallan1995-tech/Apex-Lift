@@ -9,7 +9,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data, error } = await supabase
-    .from('engineers')
+    .from('tf_engineers')
     .select('*')
     .eq('user_id', user.id)
     .order('name')
@@ -23,12 +23,12 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { count } = await supabase.from('engineers').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+  const { count } = await supabase.from('tf_engineers').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
   const color = ENGINEER_COLORS[(count ?? 0) % ENGINEER_COLORS.length]
 
   const body = await req.json()
   const { data, error } = await supabase
-    .from('engineers')
+    .from('tf_engineers')
     .insert({ ...body, user_id: user.id, color })
     .select()
     .single()
