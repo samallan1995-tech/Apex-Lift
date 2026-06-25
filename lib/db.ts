@@ -1,18 +1,18 @@
-import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
+import postgres from 'postgres'
 
-let _sql: NeonQueryFunction<false, false> | null = null
+let _sql: ReturnType<typeof postgres> | null = null
 
-function getSql(): NeonQueryFunction<false, false> {
+function getSql(): ReturnType<typeof postgres> {
   if (!_sql) {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is not set')
     }
-    _sql = neon(process.env.DATABASE_URL)
+    _sql = postgres(process.env.DATABASE_URL, { ssl: 'require' })
   }
   return _sql
 }
 
-export const sql: NeonQueryFunction<false, false> = new Proxy({} as NeonQueryFunction<false, false>, {
+export const sql: ReturnType<typeof postgres> = new Proxy({} as ReturnType<typeof postgres>, {
   apply(_target, _thisArg, args) {
     return (getSql() as unknown as (...a: unknown[]) => unknown)(...args)
   },

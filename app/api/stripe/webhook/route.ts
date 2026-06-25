@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
       if (userId) {
         await sql`
-          UPDATE users
+          UPDATE cg_users
           SET
             subscription_tier = ${plan},
             subscription_status = ${status},
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
       if (userId) {
         await sql`
-          UPDATE users
+          UPDATE cg_users
           SET subscription_tier = 'free', subscription_status = 'cancelled'
           WHERE id = ${userId}
         `
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice
       const customerId = invoice.customer as string
       await sql`
-        UPDATE users SET subscription_status = 'past_due'
+        UPDATE cg_users SET subscription_status = 'past_due'
         WHERE stripe_customer_id = ${customerId}
       `
       break

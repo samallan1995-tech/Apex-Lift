@@ -9,11 +9,11 @@ import { Shield, CheckCircle, CreditCard } from 'lucide-react'
 
 export default async function SettingsPage() {
   const session = await auth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id ?? ''
 
   const users = await sql`
     SELECT email, full_name, subscription_tier, subscription_status, trial_ends_at, created_at
-    FROM users WHERE id = ${userId}
+    FROM cg_users WHERE id = ${userId}
   `
   const user = users[0] as {
     email: string
@@ -25,7 +25,7 @@ export default async function SettingsPage() {
   }
 
   const propertyCount = (
-    await sql`SELECT COUNT(*) as count FROM properties WHERE user_id = ${userId}`
+    await sql`SELECT COUNT(*) as count FROM cg_properties WHERE user_id = ${userId}`
   )[0] as { count: string }
 
   const isOnTrial = user.subscription_tier === 'trial'

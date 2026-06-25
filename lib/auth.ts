@@ -20,7 +20,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const users = await sql`
           SELECT id, email, password_hash, subscription_tier, stripe_customer_id
-          FROM users
+          FROM cg_users
           WHERE email = ${email}
           LIMIT 1
         `

@@ -18,9 +18,9 @@ export async function GET() {
 
   const properties = await sql`
     SELECT p.*,
-      (SELECT COUNT(*) FROM certificates c WHERE c.property_id = p.id) as cert_count,
-      (SELECT COUNT(*) FROM maintenance_requests m WHERE m.property_id = p.id AND m.status != 'resolved') as open_maintenance
-    FROM properties p
+      (SELECT COUNT(*) FROM cg_certificates c WHERE c.property_id = p.id) as cert_count,
+      (SELECT COUNT(*) FROM cg_maintenance_requests m WHERE m.property_id = p.id AND m.status != 'resolved') as open_maintenance
+    FROM cg_properties p
     WHERE p.user_id = ${session.user.id}
     ORDER BY p.created_at DESC
   `
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const data = createSchema.parse(body)
 
     const result = await sql`
-      INSERT INTO properties (user_id, address, postcode, bedrooms, tenant_name, tenant_email, property_type)
+      INSERT INTO cg_properties (user_id, address, postcode, bedrooms, tenant_name, tenant_email, property_type)
       VALUES (
         ${session.user.id},
         ${data.address},

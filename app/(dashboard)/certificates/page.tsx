@@ -27,15 +27,15 @@ interface CertRow {
 
 export default async function CertificatesPage() {
   const session = await auth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id ?? ''
 
   const certs = (await sql`
     SELECT c.*, p.address, p.postcode
-    FROM certificates c
-    JOIN properties p ON p.id = c.property_id
+    FROM cg_certificates c
+    JOIN cg_properties p ON p.id = c.property_id
     WHERE p.user_id = ${userId}
     ORDER BY c.expiry_date ASC NULLS LAST
-  `) as CertRow[]
+  `) as unknown as CertRow[]
 
   const expired = certs.filter((c) => c.expiry_date && getDaysUntilExpiry(c.expiry_date) < 0)
   const urgent = certs.filter((c) => {

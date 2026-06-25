@@ -28,10 +28,10 @@ interface Params {
 
 export default async function PropertyDetailPage({ params }: Params) {
   const session = await auth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id ?? ''
 
   const properties = await sql`
-    SELECT * FROM properties
+    SELECT * FROM cg_properties
     WHERE id = ${params.id} AND user_id = ${userId}
     LIMIT 1
   `
@@ -52,10 +52,10 @@ export default async function PropertyDetailPage({ params }: Params) {
   }
 
   const certificates = await sql`
-    SELECT * FROM certificates
+    SELECT * FROM cg_certificates
     WHERE property_id = ${params.id}
     ORDER BY expiry_date ASC NULLS LAST
-  ` as Array<{
+  ` as unknown as Array<{
     id: string
     type: string
     expiry_date: string | null
@@ -67,11 +67,11 @@ export default async function PropertyDetailPage({ params }: Params) {
   }>
 
   const maintenanceRequests = await sql`
-    SELECT * FROM maintenance_requests
+    SELECT * FROM cg_maintenance_requests
     WHERE property_id = ${params.id}
     ORDER BY created_at DESC
     LIMIT 20
-  ` as Array<{
+  ` as unknown as Array<{
     id: string
     description: string
     urgency: string
@@ -84,11 +84,11 @@ export default async function PropertyDetailPage({ params }: Params) {
   }>
 
   const astAgreements = await sql`
-    SELECT * FROM ast_agreements
+    SELECT * FROM cg_ast_agreements
     WHERE property_id = ${params.id}
     ORDER BY generated_at DESC
     LIMIT 5
-  ` as Array<{
+  ` as unknown as Array<{
     id: string
     tenant_name: string
     rent_amount: string

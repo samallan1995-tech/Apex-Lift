@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
   if (!PLANS[plan]) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
-  const users = await sql`SELECT email, stripe_customer_id FROM users WHERE id = ${session.user.id}`
+  const users = await sql`SELECT email, stripe_customer_id FROM cg_users WHERE id = ${session.user.id}`
   const user = users[0] as { email: string; stripe_customer_id: string | null }
 
   let customerId = user.stripe_customer_id
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       metadata: { userId: session.user.id },
     })
     customerId = customer.id
-    await sql`UPDATE users SET stripe_customer_id = ${customerId} WHERE id = ${session.user.id}`
+    await sql`UPDATE cg_users SET stripe_customer_id = ${customerId} WHERE id = ${session.user.id}`
   }
 
   const checkoutSession = await stripe.checkout.sessions.create({

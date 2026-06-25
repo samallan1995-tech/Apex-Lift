@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
       c.id, c.type, c.expiry_date, c.reminder_30_sent, c.reminder_7_sent,
       p.address, p.user_id,
       u.email, u.full_name
-    FROM certificates c
-    JOIN properties p ON p.id = c.property_id
-    JOIN users u ON u.id = p.user_id
+    FROM cg_certificates c
+    JOIN cg_properties p ON p.id = c.property_id
+    JOIN cg_users u ON u.id = p.user_id
     WHERE c.expiry_date IS NOT NULL
       AND c.expiry_date > NOW()
       AND u.email IS NOT NULL
-  ` as Array<{
+  ` as unknown as Array<{
     id: string
     type: string
     expiry_date: string
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         expiryDate: expiryFormatted,
         daysUntilExpiry: days,
       })
-      await sql`UPDATE certificates SET reminder_7_sent = true WHERE id = ${cert.id}`
+      await sql`UPDATE cg_certificates SET reminder_7_sent = true WHERE id = ${cert.id}`
       sent.push(`7d: ${cert.id}`)
     } else if (days <= 30 && !cert.reminder_30_sent) {
       await sendCertificateReminder({
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         expiryDate: expiryFormatted,
         daysUntilExpiry: days,
       })
-      await sql`UPDATE certificates SET reminder_30_sent = true WHERE id = ${cert.id}`
+      await sql`UPDATE cg_certificates SET reminder_30_sent = true WHERE id = ${cert.id}`
       sent.push(`30d: ${cert.id}`)
     }
   }

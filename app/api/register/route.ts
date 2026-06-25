@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { email, password, fullName } = schema.parse(body)
 
-    const existing = await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`
+    const existing = await sql`SELECT id FROM cg_users WHERE email = ${email} LIMIT 1`
     if (existing.length > 0) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
     }
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12)
 
     const users = await sql`
-      INSERT INTO users (email, password_hash, full_name)
+      INSERT INTO cg_users (email, password_hash, full_name)
       VALUES (${email}, ${passwordHash}, ${fullName})
       RETURNING id, email, full_name
     `

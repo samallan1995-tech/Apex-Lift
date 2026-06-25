@@ -9,34 +9,34 @@ import { Shield, AlertTriangle, CheckCircle, FileText, Download } from 'lucide-r
 
 export default async function CompliancePage() {
   const session = await auth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id ?? ''
 
   type PropertyRow = { id: string; address: string; postcode: string }
   type CertRow2 = { id: string; property_id: string; type: string; expiry_date: string | null; address: string }
   type MaintenanceRow2 = { id: string; description: string; status: string; created_at: string; assessment_due_at: string | null; remediation_due_at: string | null; assessed_at: string | null; address: string }
 
   const properties = (await sql`
-    SELECT id, address, postcode FROM properties WHERE user_id = ${userId}
-  `) as PropertyRow[]
+    SELECT id, address, postcode FROM cg_properties WHERE user_id = ${userId}
+  `) as unknown as PropertyRow[]
 
   const certs = properties.length
     ? ((await sql`
         SELECT c.*, p.address
-        FROM certificates c
-        JOIN properties p ON p.id = c.property_id
+        FROM cg_certificates c
+        JOIN cg_properties p ON p.id = c.property_id
         WHERE p.user_id = ${userId}
-      `) as CertRow2[])
+      `) as unknown as CertRow2[])
     : ([] as CertRow2[])
 
   const maintenance = properties.length
     ? ((await sql`
         SELECT mr.*, p.address
-        FROM maintenance_requests mr
-        JOIN properties p ON p.id = mr.property_id
+        FROM cg_maintenance_requests mr
+        JOIN cg_properties p ON p.id = mr.property_id
         WHERE p.user_id = ${userId}
           AND mr.is_damp_mould = true
           AND mr.status != 'resolved'
-      `) as MaintenanceRow2[])
+      `) as unknown as MaintenanceRow2[])
     : ([] as MaintenanceRow2[])
 
   const complianceScore = calculateScore(properties, certs, maintenance)

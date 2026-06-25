@@ -44,32 +44,32 @@ interface MaintenanceRequest {
 
 export default async function DashboardPage() {
   const session = await auth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id ?? ''
 
   const properties = (await sql`
     SELECT id, address, postcode, bedrooms, tenant_name
-    FROM properties
+    FROM cg_properties
     WHERE user_id = ${userId}
     ORDER BY created_at DESC
-  `) as Property[]
+  `) as unknown as Property[]
 
   const certificates = properties.length
     ? ((await sql`
         SELECT id, property_id, type, expiry_date
-        FROM certificates
+        FROM cg_certificates
         WHERE property_id = ANY(${properties.map((p) => p.id)})
-      `) as Certificate[])
+      `) as unknown as Certificate[])
     : ([] as Certificate[])
 
   const openMaintenance = properties.length
     ? ((await sql`
         SELECT id, property_id, description, urgency, status, is_damp_mould, created_at, assessment_due_at
-        FROM maintenance_requests
+        FROM cg_maintenance_requests
         WHERE property_id = ANY(${properties.map((p) => p.id)})
           AND status != 'resolved'
         ORDER BY created_at DESC
         LIMIT 5
-      `) as MaintenanceRequest[])
+      `) as unknown as MaintenanceRequest[])
     : ([] as MaintenanceRequest[])
 
   const certsByProperty = certificates.reduce(

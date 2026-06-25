@@ -7,11 +7,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const properties = await sql`
-    SELECT id FROM properties WHERE id = ${params.id} AND user_id = ${session.user.id}
+    SELECT id FROM cg_properties WHERE id = ${params.id} AND user_id = ${session.user.id}
   `
   if (!properties.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  await sql`DELETE FROM properties WHERE id = ${params.id}`
+  await sql`DELETE FROM cg_properties WHERE id = ${params.id}`
   return NextResponse.json({ ok: true })
 }
 
@@ -20,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const properties = await sql`
-    SELECT id FROM properties WHERE id = ${params.id} AND user_id = ${session.user.id}
+    SELECT id FROM cg_properties WHERE id = ${params.id} AND user_id = ${session.user.id}
   `
   if (!properties.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { address, postcode, bedrooms, tenantName, tenantEmail, notes } = body
 
   const result = await sql`
-    UPDATE properties
+    UPDATE cg_properties
     SET
       address = COALESCE(${address ?? null}, address),
       postcode = COALESCE(${postcode ?? null}, postcode),

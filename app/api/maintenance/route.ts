@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     if (data.propertyToken) {
       const results = await sql`
-        SELECT id, address, user_id FROM properties
+        SELECT id, address, user_id FROM cg_properties
         WHERE tenant_portal_token = ${data.propertyToken}
         LIMIT 1
       `
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       const session = await auth()
       if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       const results = await sql`
-        SELECT id, address, user_id FROM properties
+        SELECT id, address, user_id FROM cg_properties
         WHERE id = ${data.propertyId} AND user_id = ${session.user.id}
         LIMIT 1
       `
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const remediationDue = data.isDampMould ? addDays(new Date(), 14).toISOString() : null
 
     const result = await sql`
-      INSERT INTO maintenance_requests (
+      INSERT INTO cg_maintenance_requests (
         property_id, description, urgency, is_damp_mould,
         tenant_name, tenant_email,
         assessment_due_at, remediation_due_at
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     `
 
     // Get landlord email to notify
-    const landlords = await sql`SELECT email, full_name FROM users WHERE id = ${property.user_id}`
+    const landlords = await sql`SELECT email, full_name FROM cg_users WHERE id = ${property.user_id}`
     const landlord = landlords[0] as { email: string; full_name: string | null } | undefined
 
     if (landlord?.email) {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     await sql`
-      INSERT INTO compliance_logs (property_id, user_id, event_type, event_data, status)
+      INSERT INTO cg_compliance_logs (property_id, user_id, event_type, event_data, status)
       VALUES (
         ${property.id},
         ${property.user_id},
@@ -116,12 +116,12 @@ export async function GET(req: NextRequest) {
   let requests
   if (propertyId) {
     const properties = await sql`
-      SELECT id FROM properties WHERE id = ${propertyId} AND user_id = ${session.user.id}
+      SELECT id FROM cg_properties WHERE id = ${propertyId} AND user_id = ${session.user.id}
     `
     if (!properties.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     requests = await sql`
-      SELECT * FROM maintenance_requests
+      SELECT * FROM cg_maintenance_requests
       WHERE property_id = ${propertyId}
       ${status ? sql`AND status = ${status}` : sql``}
       ORDER BY created_at DESC
@@ -129,8 +129,8 @@ export async function GET(req: NextRequest) {
   } else {
     requests = await sql`
       SELECT mr.*, p.address, p.postcode
-      FROM maintenance_requests mr
-      JOIN properties p ON p.id = mr.property_id
+      FROM cg_maintenance_requests mr
+      JOIN cg_properties p ON p.id = mr.property_id
       WHERE p.user_id = ${session.user.id}
       ${status ? sql`AND mr.status = ${status}` : sql``}
       ORDER BY mr.created_at DESC

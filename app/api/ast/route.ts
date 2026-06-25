@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const data = schema.parse(body)
 
     const properties = await sql`
-      SELECT id, address FROM properties
+      SELECT id, address FROM cg_properties
       WHERE id = ${data.propertyId} AND user_id = ${session.user.id}
     `
     if (!properties.length) return NextResponse.json({ error: 'Property not found' }, { status: 404 })
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`
 
     const result = await sql`
-      INSERT INTO ast_agreements (
+      INSERT INTO cg_ast_agreements (
         property_id, landlord_name, landlord_address, landlord_email,
         tenant_name, tenant_email, rent_amount, deposit_amount,
         start_date, end_date, rent_due_day, deposit_scheme, deposit_scheme_ref, pdf_url

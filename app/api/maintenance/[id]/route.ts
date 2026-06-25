@@ -15,8 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const requests = await sql`
-    SELECT mr.id FROM maintenance_requests mr
-    JOIN properties p ON p.id = mr.property_id
+    SELECT mr.id FROM cg_maintenance_requests mr
+    JOIN cg_properties p ON p.id = mr.property_id
     WHERE mr.id = ${params.id} AND p.user_id = ${session.user.id}
   `
   if (!requests.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const data = updateSchema.parse(body)
 
   const result = await sql`
-    UPDATE maintenance_requests
+    UPDATE cg_maintenance_requests
     SET
       status = COALESCE(${data.status ?? null}, status),
       resolution_notes = COALESCE(${data.resolutionNotes ?? null}, resolution_notes),

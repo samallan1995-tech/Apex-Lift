@@ -26,19 +26,19 @@ interface MaintenanceRow {
 
 export default async function MaintenancePage() {
   const session = await auth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id ?? ''
 
   const requests = (await sql`
     SELECT mr.*, p.address, p.postcode
-    FROM maintenance_requests mr
-    JOIN properties p ON p.id = mr.property_id
+    FROM cg_maintenance_requests mr
+    JOIN cg_properties p ON p.id = mr.property_id
     WHERE p.user_id = ${userId}
     ORDER BY
       mr.is_damp_mould DESC,
       mr.urgency = 'emergency' DESC,
       mr.urgency = 'high' DESC,
       mr.created_at DESC
-  `) as MaintenanceRow[]
+  `) as unknown as MaintenanceRow[]
 
   const open = requests.filter((r) => r.status !== 'resolved')
   const resolved = requests.filter((r) => r.status === 'resolved')
