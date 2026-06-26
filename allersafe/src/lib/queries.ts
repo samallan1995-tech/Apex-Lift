@@ -1,68 +1,80 @@
-import { getDb } from './db';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { getDb as _getDb, unixNow } from './db';
 import { ALLERGEN_KEYS } from './allergens';
 import type { AllergenKey } from './allergens';
 import type { Ingredient, Dish, DishIngredient, DishWithAllergens, Venue, User } from '@/types';
 
-function boolRow(row: Record<string, unknown>, key: string): boolean {
-  return row[key] === 1 || row[key] === true;
+// Cast to any so the untyped Supabase client doesn't infer `never` on all DML operations.
+function getDb(): any { return _getDb(); }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function toInt(val: unknown): boolean {
+  return val === 1 || val === true;
 }
 
 function rowToIngredient(row: Record<string, unknown>): Ingredient {
-  const allergens = Object.fromEntries(
-    ALLERGEN_KEYS.map(k => [k, boolRow(row, k)])
-  ) as Record<AllergenKey, boolean>;
   return {
     id: row.id as string,
     venue_id: row.venue_id as string,
     name: row.name as string,
     notes: row.notes as string | null,
     created_at: row.created_at as number,
-    ...allergens,
+    ...Object.fromEntries(ALLERGEN_KEYS.map(k => [k, toInt(row[k])])),
   } as Ingredient;
+}
+
+function rowToDish(row: Record<string, unknown>): Dish {
+  return {
+    id: row.id as string,
+    venue_id: row.venue_id as string,
+    name: row.name as string,
+    description: row.description as string | null,
+    available: toInt(row.available),
+    created_at: row.created_at as number,
+  };
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 
 export async function findOrCreateUser(email: string): Promise<User> {
   const db = getDb();
-  const existing = await db.execute({
-    sql: 'SELECT * FROM users WHERE email = ?',
-    args: [email],
-  });
-  if (existing.rows.length > 0) {
-    const r = existing.rows[0] as unknown as Record<string, unknown>;
-    return { id: r.id as string, email: r.email as string, created_at: r.created_at as number };
-  }
-  const id = crypto.randomUUID();
-  await db.execute({
-    sql: 'INSERT INTO users (id, email) VALUES (?, ?)',
-    args: [id, email],
-  });
-  return { id, email, created_at: Math.floor(Date.now() / 1000) };
+  const { data: existing } = await db.from('users').select().eq('email', email).maybeSingle();
+  if (existing) return existing as User;
+
+  const user: User = { id: crypto.randomUUID(), email, created_at: unixNow() };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.from('users').insert(user as any);
+  return user;
 }
 
 // ── Magic codes ───────────────────────────────────────────────────────────────
 
 export async function createMagicCode(email: string, code: string): Promise<void> {
   const db = getDb();
-  const id = crypto.randomUUID();
-  const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60; // 15 minutes
-  await db.execute({
-    sql: `INSERT INTO magic_codes (id, email, code, expires_at) VALUES (?, ?, ?, ?)`,
-    args: [id, email.toLowerCase(), code, expiresAt],
-  });
+  await db.from('magic_codes').insert({
+    id: crypto.randomUUID(),
+    email: email.toLowerCase(),
+    code,
+    expires_at: unixNow() + 15 * 60,
+  } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export async function verifyMagicCode(email: string, code: string): Promise<boolean> {
   const db = getDb();
-  const now = Math.floor(Date.now() / 1000);
-  const result = await db.execute({
-    sql: `SELECT id FROM magic_codes WHERE email = ? AND code = ? AND used = 0 AND expires_at > ? ORDER BY created_at DESC LIMIT 1`,
-    args: [email.toLowerCase(), code, now],
-  });
-  if (result.rows.length === 0) return false;
-  const id = (result.rows[0] as unknown as Record<string, unknown>).id as string;
-  await db.execute({ sql: 'UPDATE magic_codes SET used = 1 WHERE id = ?', args: [id] });
+  const { data } = await db
+    .from('magic_codes')
+    .select()
+    .eq('email', email.toLowerCase())
+    .eq('code', code)
+    .eq('used', 0)
+    .gt('expires_at', unixNow())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return false;
+  await db.from('magic_codes').update({ used: 1 } as any).eq('id', (data as Record<string, unknown>).id);
   return true;
 }
 
@@ -70,60 +82,34 @@ export async function verifyMagicCode(email: string, code: string): Promise<bool
 
 export async function getVenuesForUser(userId: string): Promise<Venue[]> {
   const db = getDb();
-  const result = await db.execute({
-    sql: `SELECT v.* FROM venues v JOIN user_venues uv ON uv.venue_id = v.id WHERE uv.user_id = ? ORDER BY v.created_at`,
-    args: [userId],
-  });
-  return result.rows.map(r => {
-    const row = r as unknown as Record<string, unknown>;
-    return {
-      id: row.id as string,
-      name: row.name as string,
-      slug: row.slug as string,
-      address: row.address as string | null,
-      created_by: row.created_by as string,
-      created_at: row.created_at as number,
-    };
-  });
+  const { data: uvs } = await db.from('user_venues').select('venue_id').eq('user_id', userId);
+  if (!uvs?.length) return [];
+  const venueIds = uvs.map((uv: Record<string, unknown>) => uv.venue_id as string);
+  const { data } = await db.from('venues').select().in('id', venueIds).order('created_at');
+  return (data ?? []) as Venue[];
 }
 
 export async function getVenueById(id: string): Promise<Venue | null> {
   const db = getDb();
-  const result = await db.execute({ sql: 'SELECT * FROM venues WHERE id = ?', args: [id] });
-  if (!result.rows.length) return null;
-  const row = result.rows[0] as unknown as Record<string, unknown>;
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    slug: row.slug as string,
-    address: row.address as string | null,
-    created_by: row.created_by as string,
-    created_at: row.created_at as number,
-  };
+  const { data } = await db.from('venues').select().eq('id', id).maybeSingle();
+  return data as Venue | null;
 }
 
 export async function getVenueBySlug(slug: string): Promise<Venue | null> {
   const db = getDb();
-  const result = await db.execute({ sql: 'SELECT * FROM venues WHERE slug = ?', args: [slug] });
-  if (!result.rows.length) return null;
-  const row = result.rows[0] as unknown as Record<string, unknown>;
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    slug: row.slug as string,
-    address: row.address as string | null,
-    created_by: row.created_by as string,
-    created_at: row.created_at as number,
-  };
+  const { data } = await db.from('venues').select().eq('slug', slug).maybeSingle();
+  return data as Venue | null;
 }
 
 export async function userOwnsVenue(userId: string, venueId: string): Promise<boolean> {
   const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT 1 FROM user_venues WHERE user_id = ? AND venue_id = ?',
-    args: [userId, venueId],
-  });
-  return result.rows.length > 0;
+  const { data } = await db
+    .from('user_venues')
+    .select()
+    .eq('user_id', userId)
+    .eq('venue_id', venueId)
+    .maybeSingle();
+  return !!data;
 }
 
 export async function createVenue(
@@ -133,41 +119,30 @@ export async function createVenue(
   address?: string
 ): Promise<Venue> {
   const db = getDb();
-  const id = crypto.randomUUID();
-  const now = Math.floor(Date.now() / 1000);
-  await db.execute({
-    sql: 'INSERT INTO venues (id, name, slug, address, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    args: [id, name, slug, address ?? null, userId, now],
-  });
-  await db.execute({
-    sql: 'INSERT INTO user_venues (user_id, venue_id, role) VALUES (?, ?, ?)',
-    args: [userId, id, 'owner'],
-  });
-  return { id, name, slug, address: address ?? null, created_by: userId, created_at: now };
+  const venue: Venue = { id: crypto.randomUUID(), name, slug, address: address ?? null, created_by: userId, created_at: unixNow() };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.from('venues').insert(venue as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.from('user_venues').insert({ user_id: userId, venue_id: venue.id, role: 'owner' } as any);
+  return venue;
 }
 
 export async function updateVenue(id: string, name: string, address?: string): Promise<void> {
   const db = getDb();
-  await db.execute({
-    sql: 'UPDATE venues SET name = ?, address = ? WHERE id = ?',
-    args: [name, address ?? null, id],
-  });
+  await db.from('venues').update({ name, address: address ?? null } as any).eq('id', id);
 }
 
 export async function deleteVenue(id: string): Promise<void> {
   const db = getDb();
-  await db.execute({ sql: 'DELETE FROM venues WHERE id = ?', args: [id] });
+  await db.from('venues').delete().eq('id', id);
 }
 
 // ── Ingredients ───────────────────────────────────────────────────────────────
 
 export async function getIngredients(venueId: string): Promise<Ingredient[]> {
   const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM ingredients WHERE venue_id = ? ORDER BY name COLLATE NOCASE',
-    args: [venueId],
-  });
-  return result.rows.map(r => rowToIngredient(r as unknown as Record<string, unknown>));
+  const { data } = await db.from('ingredients').select().eq('venue_id', venueId).order('name');
+  return ((data ?? []) as Record<string, unknown>[]).map(r => rowToIngredient(r));
 }
 
 export async function createIngredient(
@@ -175,15 +150,17 @@ export async function createIngredient(
   data: Omit<Ingredient, 'id' | 'venue_id' | 'created_at'>
 ): Promise<Ingredient> {
   const db = getDb();
-  const id = crypto.randomUUID();
-  const now = Math.floor(Date.now() / 1000);
-  const cols = ['id', 'venue_id', 'name', 'notes', 'created_at', ...ALLERGEN_KEYS];
-  const vals = [id, venueId, data.name, data.notes ?? null, now, ...ALLERGEN_KEYS.map(k => (data[k as keyof typeof data] ? 1 : 0))];
-  await db.execute({
-    sql: `INSERT INTO ingredients (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`,
-    args: vals,
-  });
-  return { ...data, id, venue_id: venueId, created_at: now };
+  const row = {
+    id: crypto.randomUUID(),
+    venue_id: venueId,
+    name: data.name,
+    notes: data.notes ?? null,
+    created_at: unixNow(),
+    ...Object.fromEntries(ALLERGEN_KEYS.map(k => [k, (data as Record<string, unknown>)[k] ? 1 : 0])),
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.from('ingredients').insert(row as any);
+  return rowToIngredient(row as Record<string, unknown>);
 }
 
 export async function updateIngredient(
@@ -191,155 +168,111 @@ export async function updateIngredient(
   data: Omit<Ingredient, 'id' | 'venue_id' | 'created_at'>
 ): Promise<void> {
   const db = getDb();
-  const setCols = ['name', 'notes', ...ALLERGEN_KEYS].map(c => `${c} = ?`).join(', ');
-  const vals = [data.name, data.notes ?? null, ...ALLERGEN_KEYS.map(k => (data[k as keyof typeof data] ? 1 : 0)), id];
-  await db.execute({ sql: `UPDATE ingredients SET ${setCols} WHERE id = ?`, args: vals });
+  await db.from('ingredients').update({
+    name: data.name,
+    notes: data.notes ?? null,
+    ...Object.fromEntries(ALLERGEN_KEYS.map(k => [k, (data as Record<string, unknown>)[k] ? 1 : 0])),
+  } as any).eq('id', id);
 }
 
 export async function deleteIngredient(id: string): Promise<void> {
   const db = getDb();
-  await db.execute({ sql: 'DELETE FROM ingredients WHERE id = ?', args: [id] });
+  await db.from('ingredients').delete().eq('id', id);
 }
 
 // ── Dishes ────────────────────────────────────────────────────────────────────
 
 export async function getDishes(venueId: string): Promise<Dish[]> {
   const db = getDb();
-  const result = await db.execute({
-    sql: 'SELECT * FROM dishes WHERE venue_id = ? ORDER BY name COLLATE NOCASE',
-    args: [venueId],
-  });
-  return result.rows.map(r => {
-    const row = r as unknown as Record<string, unknown>;
-    return {
-      id: row.id as string,
-      venue_id: row.venue_id as string,
-      name: row.name as string,
-      description: row.description as string | null,
-      available: boolRow(row, 'available'),
-      created_at: row.created_at as number,
-    };
-  });
+  const { data } = await db.from('dishes').select().eq('venue_id', venueId).order('name');
+  return ((data ?? []) as Record<string, unknown>[]).map(r => rowToDish(r));
 }
 
-export async function getDishWithAllergens(dishId: string): Promise<DishWithAllergens | null> {
-  const db = getDb();
-  const dishRes = await db.execute({ sql: 'SELECT * FROM dishes WHERE id = ?', args: [dishId] });
-  if (!dishRes.rows.length) return null;
-  const dishRow = dishRes.rows[0] as unknown as Record<string, unknown>;
+type RawDishIngredient = {
+  id: string;
+  dish_id: string;
+  ingredient_id: string;
+  weight_grams: number;
+  ingredients: Record<string, unknown>;
+};
 
-  const ingredRes = await db.execute({
-    sql: `SELECT di.*, i.name as ingredient_name, ${ALLERGEN_KEYS.map(k => `i.${k}`).join(', ')}
-          FROM dish_ingredients di
-          JOIN ingredients i ON i.id = di.ingredient_id
-          WHERE di.dish_id = ?
-          ORDER BY di.weight_grams DESC`,
-    args: [dishId],
-  });
-
-  const ingredients: DishIngredient[] = ingredRes.rows.map(r => {
-    const row = r as unknown as Record<string, unknown>;
-    return {
-      id: row.id as string,
-      dish_id: row.dish_id as string,
-      ingredient_id: row.ingredient_id as string,
-      weight_grams: row.weight_grams as number,
-      ingredient_name: row.ingredient_name as string,
-      ...Object.fromEntries(ALLERGEN_KEYS.map(k => [k, boolRow(row, k)])),
-    } as DishIngredient;
-  });
+function buildDishWithAllergens(
+  dish: Dish,
+  rawIngreds: RawDishIngredient[]
+): DishWithAllergens {
+  const ingredients: DishIngredient[] = rawIngreds.map(di => ({
+    id: di.id,
+    dish_id: di.dish_id,
+    ingredient_id: di.ingredient_id,
+    weight_grams: di.weight_grams,
+    ingredient_name: di.ingredients.name as string,
+    ...Object.fromEntries(ALLERGEN_KEYS.map(k => [k, toInt(di.ingredients[k])])),
+  } as DishIngredient));
 
   const allergens = Object.fromEntries(
     ALLERGEN_KEYS.map(k => [k, ingredients.some(i => i[k as keyof DishIngredient])])
   ) as Record<AllergenKey, boolean>;
 
-  return {
-    id: dishRow.id as string,
-    venue_id: dishRow.venue_id as string,
-    name: dishRow.name as string,
-    description: dishRow.description as string | null,
-    available: boolRow(dishRow, 'available'),
-    created_at: dishRow.created_at as number,
-    allergens,
-    ingredients,
-  };
+  return { ...dish, allergens, ingredients };
+}
+
+export async function getDishWithAllergens(dishId: string): Promise<DishWithAllergens | null> {
+  const db = getDb();
+  const { data: dishRow } = await db.from('dishes').select().eq('id', dishId).maybeSingle();
+  if (!dishRow) return null;
+
+  const { data: diRows } = await db
+    .from('dish_ingredients')
+    .select('*, ingredients(*)')
+    .eq('dish_id', dishId)
+    .order('weight_grams', { ascending: false });
+
+  const dish = rowToDish(dishRow as Record<string, unknown>);
+  return buildDishWithAllergens(dish, ((diRows ?? []) as unknown) as RawDishIngredient[]);
 }
 
 export async function getDishesWithAllergens(venueId: string): Promise<DishWithAllergens[]> {
   const db = getDb();
-  const dishesRes = await db.execute({
-    sql: 'SELECT * FROM dishes WHERE venue_id = ? ORDER BY name COLLATE NOCASE',
-    args: [venueId],
-  });
-  const dishes = dishesRes.rows.map(r => {
-    const row = r as unknown as Record<string, unknown>;
-    return {
-      id: row.id as string,
-      venue_id: row.venue_id as string,
-      name: row.name as string,
-      description: row.description as string | null,
-      available: boolRow(row, 'available'),
-      created_at: row.created_at as number,
-    };
-  });
+  const { data: dishRows } = await db.from('dishes').select().eq('venue_id', venueId).order('name');
+  if (!dishRows?.length) return [];
 
-  if (dishes.length === 0) return [];
+  const dishes = (dishRows as Record<string, unknown>[]).map(r => rowToDish(r));
 
-  const ingredRes = await db.execute({
-    sql: `SELECT di.*, i.name as ingredient_name, ${ALLERGEN_KEYS.map(k => `i.${k}`).join(', ')}
-          FROM dish_ingredients di
-          JOIN ingredients i ON i.id = di.ingredient_id
-          WHERE di.dish_id IN (${dishes.map(() => '?').join(',')})
-          ORDER BY di.weight_grams DESC`,
-    args: dishes.map(d => d.id),
-  });
+  const { data: diRows } = await db
+    .from('dish_ingredients')
+    .select('*, ingredients(*)')
+    .in('dish_id', dishes.map(d => d.id))
+    .order('weight_grams', { ascending: false });
 
-  const ingredsByDish: Record<string, DishIngredient[]> = {};
-  for (const r of ingredRes.rows) {
-    const row = r as unknown as Record<string, unknown>;
-    const dishId = row.dish_id as string;
-    if (!ingredsByDish[dishId]) ingredsByDish[dishId] = [];
-    ingredsByDish[dishId].push({
-      id: row.id as string,
-      dish_id: dishId,
-      ingredient_id: row.ingredient_id as string,
-      weight_grams: row.weight_grams as number,
-      ingredient_name: row.ingredient_name as string,
-      ...Object.fromEntries(ALLERGEN_KEYS.map(k => [k, boolRow(row, k)])),
-    } as DishIngredient);
+  const ingredsByDish: Record<string, RawDishIngredient[]> = {};
+  for (const di of ((diRows ?? []) as unknown) as RawDishIngredient[]) {
+    if (!ingredsByDish[di.dish_id]) ingredsByDish[di.dish_id] = [];
+    ingredsByDish[di.dish_id].push(di);
   }
 
-  return dishes.map(dish => {
-    const ingredients = ingredsByDish[dish.id] ?? [];
-    const allergens = Object.fromEntries(
-      ALLERGEN_KEYS.map(k => [k, ingredients.some(i => i[k as keyof DishIngredient])])
-    ) as Record<AllergenKey, boolean>;
-    return { ...dish, allergens, ingredients };
-  });
+  return dishes.map(dish => buildDishWithAllergens(dish, ingredsByDish[dish.id] ?? []));
 }
 
 export async function createDish(venueId: string, name: string, description?: string): Promise<Dish> {
   const db = getDb();
-  const id = crypto.randomUUID();
-  const now = Math.floor(Date.now() / 1000);
-  await db.execute({
-    sql: 'INSERT INTO dishes (id, venue_id, name, description, available, created_at) VALUES (?, ?, ?, ?, 1, ?)',
-    args: [id, venueId, name, description ?? null, now],
-  });
-  return { id, venue_id: venueId, name, description: description ?? null, available: true, created_at: now };
+  const dish: Dish = { id: crypto.randomUUID(), venue_id: venueId, name, description: description ?? null, available: true, created_at: unixNow() };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await db.from('dishes').insert({ ...dish, available: 1 } as any);
+  return dish;
 }
 
 export async function updateDish(id: string, name: string, description?: string, available?: boolean): Promise<void> {
   const db = getDb();
-  await db.execute({
-    sql: 'UPDATE dishes SET name = ?, description = ?, available = ? WHERE id = ?',
-    args: [name, description ?? null, available !== false ? 1 : 0, id],
-  });
+  await db.from('dishes').update({
+    name,
+    description: description ?? null,
+    available: available !== false ? 1 : 0,
+  } as any).eq('id', id);
 }
 
 export async function deleteDish(id: string): Promise<void> {
   const db = getDb();
-  await db.execute({ sql: 'DELETE FROM dishes WHERE id = ?', args: [id] });
+  await db.from('dishes').delete().eq('id', id);
 }
 
 export async function setDishIngredients(
@@ -347,11 +280,26 @@ export async function setDishIngredients(
   items: Array<{ ingredient_id: string; weight_grams: number }>
 ): Promise<void> {
   const db = getDb();
-  await db.execute({ sql: 'DELETE FROM dish_ingredients WHERE dish_id = ?', args: [dishId] });
-  for (const item of items) {
-    await db.execute({
-      sql: 'INSERT INTO dish_ingredients (id, dish_id, ingredient_id, weight_grams) VALUES (?, ?, ?, ?)',
-      args: [crypto.randomUUID(), dishId, item.ingredient_id, item.weight_grams],
-    });
+  await db.from('dish_ingredients').delete().eq('dish_id', dishId);
+  if (items.length > 0) {
+    await db.from('dish_ingredients').insert(
+      items.map(item => ({ id: crypto.randomUUID(), dish_id: dishId, ...item })) as any // eslint-disable-line @typescript-eslint/no-explicit-any
+    );
   }
+}
+
+// ── Access checks used by API routes ─────────────────────────────────────────
+
+export async function ingredientBelongsToUser(userId: string, ingredientId: string): Promise<boolean> {
+  const db = getDb();
+  const { data: ing } = await db.from('ingredients').select('venue_id').eq('id', ingredientId).maybeSingle();
+  if (!ing) return false;
+  return userOwnsVenue(userId, (ing as Record<string, unknown>).venue_id as string);
+}
+
+export async function dishBelongsToUser(userId: string, dishId: string): Promise<boolean> {
+  const db = getDb();
+  const { data: dish } = await db.from('dishes').select('venue_id').eq('id', dishId).maybeSingle();
+  if (!dish) return false;
+  return userOwnsVenue(userId, (dish as Record<string, unknown>).venue_id as string);
 }

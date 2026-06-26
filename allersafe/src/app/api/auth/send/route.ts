@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { Resend } from 'resend';
 import { createMagicCode } from '@/lib/queries';
 import { generateCode } from '@/lib/utils';
-import { initSchema } from '@/lib/db';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -14,7 +13,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email } = schema.parse(body);
 
-    await initSchema();
     const code = generateCode();
     await createMagicCode(email.toLowerCase(), code);
 

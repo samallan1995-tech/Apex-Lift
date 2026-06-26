@@ -1,24 +1,14 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/session';
-import { getDishWithAllergens } from '@/lib/queries';
+import { getDishWithAllergens, dishBelongsToUser } from '@/lib/queries';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { PPDSLabelDocument } from '@/components/pdf/LabelDocument';
-import { getDb } from '@/lib/db';
 import React from 'react';
-
-async function checkAccess(userId: string, dishId: string): Promise<boolean> {
-  const db = getDb();
-  const result = await db.execute({
-    sql: `SELECT 1 FROM dishes d JOIN user_venues uv ON uv.venue_id = d.venue_id WHERE d.id = ? AND uv.user_id = ?`,
-    args: [dishId, userId],
-  });
-  return result.rows.length > 0;
-}
 
 export async function GET(_req: Request, { params }: { params: { dishId: string } }) {
   const session = await requireAuth();
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  if (!(await checkAccess(session.userId!, params.dishId)))
+  if (!(await dishBelongsToUser(session.userId!, params.dishId)))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const dish = await getDishWithAllergens(params.dishId);
