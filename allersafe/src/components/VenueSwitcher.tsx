@@ -113,7 +113,7 @@ export function VenueSwitcher({ venues, activeVenueId, onSwitch, onCreated }: Pr
                 onClick={() => setOpen(false)}
                 className="block text-center text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-lg px-4 py-2.5"
               >
-                Upgrade to Multi-site →
+                View plans &amp; pricing →
               </Link>
             )}
             <div className="flex gap-2">

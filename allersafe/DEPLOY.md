@@ -52,13 +52,15 @@ Optional: `NEXT_PUBLIC_APP_URL` (production URL for Stripe redirects),
 
 | Plan | Price | Venues |
 |---|---|---|
-| Free / no subscription | — | 1 |
+| No subscription | — | 0 (must subscribe) |
 | Single site | £15/mo | 1 |
 | Multi-site | £29/mo | 5 |
 
+There is no free tier: a paid plan is required before any venue can be created.
 Venue creation is blocked with HTTP 402 once the limit is reached, and the UI
-prompts the user to upgrade. Limits are recomputed from the live Stripe
-subscription status on every webhook.
+prompts the user to choose/upgrade a plan. Limits are recomputed from the live
+Stripe subscription status on every webhook. To re-enable a free venue, set
+`FREE_VENUE_LIMIT` in `src/lib/plans.ts`.
 
 > Secrets are **never** committed to this repo. Provide them via the environment
 > (the Claude Code web environment config can store them, or export them in your shell).

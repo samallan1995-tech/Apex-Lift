@@ -24,13 +24,16 @@ export async function POST(req: Request) {
   // Enforce the venue allowance for the account's current plan.
   const billing = await getBillingState(session.userId!);
   if (billing.venueCount >= billing.venueLimit) {
+    const message =
+      billing.venueLimit === 0
+        ? 'Choose a plan to add your first venue.'
+        : billing.venueLimit === 1
+          ? 'Your Single site plan includes 1 venue. Upgrade to Multi-site to add more.'
+          : `Your plan includes ${billing.venueLimit} venues. You have reached that limit.`;
     return NextResponse.json(
       {
         error: 'venue_limit_reached',
-        message:
-          billing.venueLimit === 1
-            ? 'Your plan includes 1 venue. Upgrade to Multi-site to add more.'
-            : `Your plan includes ${billing.venueLimit} venues. You have reached that limit.`,
+        message,
         venueLimit: billing.venueLimit,
         venueCount: billing.venueCount,
       },

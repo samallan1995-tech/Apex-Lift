@@ -55,8 +55,9 @@ export const SETUP_ADDON = {
   priceEnv: 'STRIPE_PRICE_SETUP' as const,
 };
 
-/** Baseline venue allowance for an account with no active subscription. */
-export const FREE_VENUE_LIMIT = 1;
+/** Baseline venue allowance for an account with no active subscription.
+ *  0 = no free tier; a paid plan is required before any venue can be created. */
+export const FREE_VENUE_LIMIT = 0;
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing', 'past_due']);
 
