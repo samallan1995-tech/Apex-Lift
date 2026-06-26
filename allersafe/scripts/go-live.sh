@@ -40,14 +40,22 @@ command -v vercel >/dev/null 2>&1 || npm install -g vercel
 sk ()  { curl -fsS https://api.stripe.com/v1/"$1" -u "$STRIPE_SECRET_KEY": "${@:2}"; }
 jget () { python3 -c "import sys,json;print(json.load(sys.stdin)$1)"; }
 
-echo "▶ Creating Stripe products & prices…"
-PRICE_SINGLE=$(sk prices -d "unit_amount=1500" -d "currency=gbp" \
-  -d "recurring[interval]=month" -d "product_data[name]=AllerSafe — Single site" | jget "['id']")
-PRICE_MULTI=$(sk prices -d "unit_amount=2900" -d "currency=gbp" \
-  -d "recurring[interval]=month" -d "product_data[name]=AllerSafe — Multi-site" | jget "['id']")
-PRICE_SETUP=$(sk prices -d "unit_amount=4900" -d "currency=gbp" \
-  -d "product_data[name]=AllerSafe — Menu import setup" | jget "['id']")
-echo "  single=$PRICE_SINGLE  multi=$PRICE_MULTI  setup=$PRICE_SETUP"
+# Reuse pre-created Price IDs if supplied (STRIPE_PRICE_*), otherwise create them.
+if [ -n "${STRIPE_PRICE_SINGLE:-}" ] && [ -n "${STRIPE_PRICE_MULTI:-}" ] && [ -n "${STRIPE_PRICE_SETUP:-}" ]; then
+  PRICE_SINGLE="$STRIPE_PRICE_SINGLE"
+  PRICE_MULTI="$STRIPE_PRICE_MULTI"
+  PRICE_SETUP="$STRIPE_PRICE_SETUP"
+  echo "▶ Using existing Stripe prices: single=$PRICE_SINGLE multi=$PRICE_MULTI setup=$PRICE_SETUP"
+else
+  echo "▶ Creating Stripe products & prices…"
+  PRICE_SINGLE=$(sk prices -d "unit_amount=1500" -d "currency=gbp" \
+    -d "recurring[interval]=month" -d "product_data[name]=AllerSafe — Single site" | jget "['id']")
+  PRICE_MULTI=$(sk prices -d "unit_amount=2900" -d "currency=gbp" \
+    -d "recurring[interval]=month" -d "product_data[name]=AllerSafe — Multi-site" | jget "['id']")
+  PRICE_SETUP=$(sk prices -d "unit_amount=4900" -d "currency=gbp" \
+    -d "product_data[name]=AllerSafe — Menu import setup" | jget "['id']")
+  echo "  single=$PRICE_SINGLE  multi=$PRICE_MULTI  setup=$PRICE_SETUP"
+fi
 
 VC=(vercel --token "$VERCEL_TOKEN" --scope "$TEAM")
 echo "▶ Linking Vercel project…"
