@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -128,7 +129,14 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-sm text-gray-500 mt-6">
+          New here?{' '}
+          <Link href="/pricing" className="font-medium text-green-700 hover:text-green-800 underline">
+            See plans &amp; pricing
+          </Link>
+        </p>
+
+        <p className="text-center text-xs text-gray-400 mt-4">
           AllerSafe helps food businesses manage allergen information. The business remains legally responsible for verifying all allergen declarations against supplier specifications.
         </p>
       </div>

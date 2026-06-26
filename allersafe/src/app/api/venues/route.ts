@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/session';
-import { getVenuesForUser, createVenue, getVenueBySlug } from '@/lib/queries';
+import { getVenuesForUser, createVenue, getVenueBySlug, getBillingState } from '@/lib/queries';
 import { slugify } from '@/lib/utils';
 
 const createSchema = z.object({
@@ -20,6 +20,23 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
   const data = createSchema.parse(await req.json());
+
+  // Enforce the venue allowance for the account's current plan.
+  const billing = await getBillingState(session.userId!);
+  if (billing.venueCount >= billing.venueLimit) {
+    return NextResponse.json(
+      {
+        error: 'venue_limit_reached',
+        message:
+          billing.venueLimit === 1
+            ? 'Your plan includes 1 venue. Upgrade to Multi-site to add more.'
+            : `Your plan includes ${billing.venueLimit} venues. You have reached that limit.`,
+        venueLimit: billing.venueLimit,
+        venueCount: billing.venueCount,
+      },
+      { status: 402 }
+    );
+  }
 
   let slug = slugify(data.name);
   let attempt = 0;

@@ -14,6 +14,7 @@ const NAV = [
   { href: '/dashboard/matrix', label: 'Allergen Matrix', icon: '📋' },
   { href: '/dashboard/labels', label: 'PPDS Labels', icon: '🏷️' },
   { href: '/dashboard/qr', label: 'QR Menu', icon: '📱' },
+  { href: '/dashboard/billing', label: 'Billing & plan', icon: '💳' },
 ];
 
 interface Props {

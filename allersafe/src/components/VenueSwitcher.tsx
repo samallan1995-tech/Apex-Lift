@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import type { Venue } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/Button';
@@ -20,6 +21,7 @@ export function VenueSwitcher({ venues, activeVenueId, onSwitch, onCreated }: Pr
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [needsUpgrade, setNeedsUpgrade] = useState(false);
 
   const active = venues.find(v => v.id === activeVenueId);
 
@@ -27,13 +29,21 @@ export function VenueSwitcher({ venues, activeVenueId, onSwitch, onCreated }: Pr
     if (!name.trim()) return;
     setLoading(true);
     setError('');
+    setNeedsUpgrade(false);
     try {
       const res = await fetch('/api/venues', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, address }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 402) {
+          setNeedsUpgrade(true);
+          throw new Error(data.message ?? 'You have reached your venue limit.');
+        }
+        throw new Error(data.message ?? data.error ?? 'Failed to create venue');
+      }
       const venue: Venue = await res.json();
       onCreated(venue);
       setCreating(false);
@@ -97,6 +107,15 @@ export function VenueSwitcher({ venues, activeVenueId, onSwitch, onCreated }: Pr
             <Input label="Venue name" value={name} onChange={e => setName(e.target.value)} placeholder="The Green Plate" />
             <Input label="Address (optional)" value={address} onChange={e => setAddress(e.target.value)} placeholder="123 High Street, London" />
             {error && <p className="text-sm text-red-600">{error}</p>}
+            {needsUpgrade && (
+              <Link
+                href="/dashboard/billing"
+                onClick={() => setOpen(false)}
+                className="block text-center text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-lg px-4 py-2.5"
+              >
+                Upgrade to Multi-site →
+              </Link>
+            )}
             <div className="flex gap-2">
               <Button onClick={handleCreate} loading={loading} disabled={!name.trim()}>Create</Button>
               <Button variant="secondary" onClick={() => setCreating(false)}>Cancel</Button>

@@ -2,7 +2,8 @@
 import { getDb as _getDb, unixNow } from './db';
 import { ALLERGEN_KEYS } from './allergens';
 import type { AllergenKey } from './allergens';
-import type { Ingredient, Dish, DishIngredient, DishWithAllergens, Venue, User } from '@/types';
+import type { Ingredient, Dish, DishIngredient, DishWithAllergens, Venue, User, Subscription, BillingState } from '@/types';
+import { venueLimitFor, FREE_VENUE_LIMIT } from './plans';
 
 // Cast to any so the untyped Supabase client doesn't infer `never` on all DML operations.
 function getDb(): any { return _getDb(); }
@@ -302,4 +303,106 @@ export async function dishBelongsToUser(userId: string, dishId: string): Promise
   const { data: dish } = await db.from('dishes').select('venue_id').eq('id', dishId).maybeSingle();
   if (!dish) return false;
   return userOwnsVenue(userId, (dish as Record<string, unknown>).venue_id as string);
+}
+
+// ── Billing / subscriptions ──────────────────────────────────────────────────
+
+export async function getSubscription(userId: string): Promise<Subscription | null> {
+  const db = getDb();
+  const { data } = await db.from('allersafe_subscriptions').select().eq('user_id', userId).maybeSingle();
+  return (data as Subscription | null) ?? null;
+}
+
+export async function getSubscriptionByCustomerId(customerId: string): Promise<Subscription | null> {
+  const db = getDb();
+  const { data } = await db
+    .from('allersafe_subscriptions')
+    .select()
+    .eq('stripe_customer_id', customerId)
+    .maybeSingle();
+  return (data as Subscription | null) ?? null;
+}
+
+/** Number of venues the user owns (created_by). */
+export async function countVenuesForUser(userId: string): Promise<number> {
+  const venues = await getVenuesForUser(userId);
+  return venues.length;
+}
+
+/** Ensure a subscription row exists for the user; returns the (possibly new) row. */
+export async function ensureSubscription(userId: string): Promise<Subscription> {
+  const existing = await getSubscription(userId);
+  if (existing) return existing;
+  const db = getDb();
+  const row: Subscription = {
+    user_id: userId,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    plan: null,
+    status: 'none',
+    venue_limit: FREE_VENUE_LIMIT,
+    setup_paid: false,
+    current_period_end: null,
+    created_at: unixNow(),
+    updated_at: unixNow(),
+  };
+  await db.from('allersafe_subscriptions').insert(row);
+  return row;
+}
+
+export async function setStripeCustomerId(userId: string, customerId: string): Promise<void> {
+  await ensureSubscription(userId);
+  const db = getDb();
+  await db
+    .from('allersafe_subscriptions')
+    .update({ stripe_customer_id: customerId, updated_at: unixNow() })
+    .eq('user_id', userId);
+}
+
+interface SubscriptionUpdate {
+  plan?: string | null;
+  status?: string;
+  stripe_subscription_id?: string | null;
+  current_period_end?: number | null;
+  setup_paid?: boolean;
+}
+
+/** Apply a partial update to a subscription, recomputing the venue limit. */
+export async function updateSubscription(userId: string, patch: SubscriptionUpdate): Promise<void> {
+  await ensureSubscription(userId);
+  const db = getDb();
+  const current = await getSubscription(userId);
+  const plan = patch.plan !== undefined ? patch.plan : current?.plan ?? null;
+  const status = patch.status !== undefined ? patch.status : current?.status ?? 'none';
+  const row: Record<string, unknown> = {
+    ...patch,
+    plan,
+    status,
+    venue_limit: venueLimitFor(plan, status),
+    updated_at: unixNow(),
+  };
+  await db.from('allersafe_subscriptions').update(row).eq('user_id', userId);
+}
+
+export async function getBillingState(userId: string): Promise<BillingState> {
+  const sub = await getSubscription(userId);
+  const venueCount = await countVenuesForUser(userId);
+  if (!sub) {
+    return {
+      plan: null,
+      status: 'none',
+      venueLimit: FREE_VENUE_LIMIT,
+      venueCount,
+      setupPaid: false,
+      currentPeriodEnd: null,
+    };
+  }
+  return {
+    plan: sub.plan,
+    status: sub.status,
+    venueLimit: venueLimitFor(sub.plan, sub.status),
+    venueCount,
+    setupPaid: sub.setup_paid,
+    currentPeriodEnd: sub.current_period_end,
+  };
 }

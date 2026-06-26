@@ -73,6 +73,28 @@ export interface DishWithAllergens extends Dish {
   ingredients: DishIngredient[];
 }
 
+export interface Subscription {
+  user_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan: string | null;
+  status: string;
+  venue_limit: number;
+  setup_paid: boolean;
+  current_period_end: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface BillingState {
+  plan: string | null;
+  status: string;
+  venueLimit: number;
+  venueCount: number;
+  setupPaid: boolean;
+  currentPeriodEnd: number | null;
+}
+
 export interface SessionData {
   userId?: string;
   email?: string;

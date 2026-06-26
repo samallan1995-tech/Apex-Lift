@@ -13,8 +13,14 @@
 #   IRON_SESSION_PASSWORD  - 32+ char random secret for the session cookie
 #   RESEND_API_KEY         - Resend API key
 #   RESEND_FROM_EMAIL      - From address for magic-code emails
+#   STRIPE_SECRET_KEY      - Stripe secret key
+#   STRIPE_WEBHOOK_SECRET  - Stripe webhook signing secret
+#   STRIPE_PRICE_SINGLE    - Price ID for Single site (£15/mo)
+#   STRIPE_PRICE_MULTI     - Price ID for Multi-site (£29/mo)
+#   STRIPE_PRICE_SETUP     - Price ID for the one-off setup add-on (£49)
 #
 # Optional:
+#   NEXT_PUBLIC_APP_URL    - production URL for Stripe checkout redirects
 #   VERCEL_TEAM            - team slug (default: samallan1995-6674s-projects)
 #   VERCEL_PROJECT         - project name (default: allersafe)
 #
@@ -28,7 +34,9 @@ PROJECT="${VERCEL_PROJECT:-allersafe}"
 
 # ── Preflight: required secrets must be present ─────────────────────────────
 missing=()
-for v in VERCEL_TOKEN SUPABASE_URL SUPABASE_ANON_KEY IRON_SESSION_PASSWORD RESEND_API_KEY RESEND_FROM_EMAIL; do
+for v in VERCEL_TOKEN SUPABASE_URL SUPABASE_ANON_KEY IRON_SESSION_PASSWORD \
+         RESEND_API_KEY RESEND_FROM_EMAIL STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
+         STRIPE_PRICE_SINGLE STRIPE_PRICE_MULTI STRIPE_PRICE_SETUP; do
   [ -n "${!v:-}" ] || missing+=("$v")
 done
 if [ "${#missing[@]}" -gt 0 ]; then
@@ -58,6 +66,12 @@ set_env SUPABASE_ANON_KEY     "$SUPABASE_ANON_KEY"
 set_env IRON_SESSION_PASSWORD "$IRON_SESSION_PASSWORD"
 set_env RESEND_API_KEY        "$RESEND_API_KEY"
 set_env RESEND_FROM_EMAIL     "$RESEND_FROM_EMAIL"
+set_env STRIPE_SECRET_KEY     "$STRIPE_SECRET_KEY"
+set_env STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET"
+set_env STRIPE_PRICE_SINGLE   "$STRIPE_PRICE_SINGLE"
+set_env STRIPE_PRICE_MULTI    "$STRIPE_PRICE_MULTI"
+set_env STRIPE_PRICE_SETUP    "$STRIPE_PRICE_SETUP"
+[ -n "${NEXT_PUBLIC_APP_URL:-}" ] && set_env NEXT_PUBLIC_APP_URL "$NEXT_PUBLIC_APP_URL"
 
 # ── Deploy ──────────────────────────────────────────────────────────────────
 "${VC[@]}" deploy --prod --yes

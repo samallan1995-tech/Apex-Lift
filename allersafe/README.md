@@ -14,14 +14,28 @@ UK allergen labelling tool for food businesses. Manage your ingredient library, 
 - Automatic allergen rollup from ingredients to dishes
 - Multi-venue support with a venue switcher
 - Magic-code (email OTP) login via Resend — no password required
-- Turso (libSQL) database — zero cold-start, free tier available
+- Stripe subscription billing with per-tier venue limits
+- Supabase (PostgreSQL) database
 - No AI used — near-zero marginal cost
+
+## Pricing
+
+| Tier | Price | Venues |
+|---|---|---|
+| **Single site** | £15/mo | 1 venue |
+| **Multi-site** | £29/mo | Up to 5 venues |
+| **Setup add-on** | £49 one-off | "We'll import your menu" |
+
+Billing is handled by Stripe Checkout; subscription status is synced via a Stripe
+webhook (`/api/billing/webhook`). Venue creation is gated by the active plan's
+limit. See [`DEPLOY.md`](./DEPLOY.md) for the one-time Stripe product/webhook setup.
 
 ## Tech stack
 
 - Next.js 14 (App Router, TypeScript)
 - Tailwind CSS
-- Turso (libSQL) via `@libsql/client`
+- Supabase (PostgreSQL) via `@supabase/supabase-js`
+- Stripe for subscriptions & one-off payments
 - Resend for transactional email
 - iron-session for cookie-based sessions
 - @react-pdf/renderer for PDF generation
@@ -37,25 +51,19 @@ Copy `.env.example` to `.env.local` and fill in the values:
 cp .env.example .env.local
 ```
 
-### 1. Turso database
+### 1. Supabase database
 
-Install the Turso CLI and create a database:
-
-```bash
-brew install tursodatabase/tap/turso
-turso auth login
-turso db create allersafe
-turso db show allersafe          # copy the URL
-turso db tokens create allersafe # copy the token
-```
+Create a project at [supabase.com](https://supabase.com), then apply the schema
+(see the migrations in the project, or run the SQL for the `users`, `magic_codes`,
+`venues`, `user_venues`, `ingredients`, `dishes`, `dish_ingredients`, and
+`allersafe_subscriptions` tables). RLS is disabled — authorization is enforced by
+iron-session in the API routes, so the anon key is used **server-side only**.
 
 Set in `.env.local`:
 ```
-TURSO_DATABASE_URL=libsql://allersafe-yourname.turso.io
-TURSO_AUTH_TOKEN=your-token-here
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
 ```
-
-The database schema is created automatically on first startup via the Next.js instrumentation hook.
 
 ### 2. Resend (email)
 
@@ -80,6 +88,19 @@ openssl rand -base64 32
 IRON_SESSION_PASSWORD=your-generated-secret
 ```
 
+### 4. Stripe (billing)
+
+Create the three products in the [Stripe Dashboard](https://dashboard.stripe.com)
+and a webhook endpoint — full steps in [`DEPLOY.md`](./DEPLOY.md). Then set:
+
+```
+STRIPE_SECRET_KEY=sk_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_PRICE_SINGLE=price_xxx
+STRIPE_PRICE_MULTI=price_xxx
+STRIPE_PRICE_SETUP=price_xxx
+```
+
 ---
 
 ## Running locally
@@ -102,7 +123,12 @@ Open [http://localhost:3000](http://localhost:3000).
 4. Add the environment variables from `.env.local`
 5. Deploy
 
-The `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` must be set in Vercel's project settings.
+All variables from `.env.example` must be set in Vercel's project settings. For a
+fully-scripted deploy, see [`DEPLOY.md`](./DEPLOY.md) and `scripts/deploy.sh`.
+
+> **Stripe webhook:** after the first deploy, add a webhook endpoint pointing at
+> `https://<your-app>/api/billing/webhook` and put its signing secret in
+> `STRIPE_WEBHOOK_SECRET`. See [`DEPLOY.md`](./DEPLOY.md).
 
 ---
 
@@ -127,7 +153,7 @@ The `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` must be set in Vercel's project 
 allersafe/
 ├── src/
 │   ├── app/
-│   │   ├── api/              # API routes (auth, venues, ingredients, dishes, pdf)
+│   │   ├── api/              # API routes (auth, venues, ingredients, dishes, pdf, billing)
 │   │   ├── dashboard/        # Protected dashboard pages
 │   │   ├── menu/[slug]/      # Public QR allergen menu
 │   │   └── page.tsx          # Login page
@@ -136,9 +162,12 @@ allersafe/
 │   │   └── ui/               # Reusable UI components
 │   └── lib/
 │       ├── allergens.ts      # UK FSA 14 allergen definitions
-│       ├── db.ts             # Turso client + schema init
+│       ├── db.ts             # Supabase client
 │       ├── queries.ts        # Database query helpers
+│       ├── plans.ts          # Pricing tiers + venue-limit helpers
+│       ├── stripe.ts         # Stripe client
 │       ├── session.ts        # iron-session config
 │       └── venue-context.tsx # React context for active venue
+├── scripts/deploy.sh         # Scripted Vercel deploy
 └── .env.example
 ```
