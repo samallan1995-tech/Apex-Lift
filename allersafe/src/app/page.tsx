@@ -127,7 +127,64 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="features" className="max-w-6xl mx-auto px-5 py-20">
+      {/* Product proof — real label + live demo menu */}
+      <section className="max-w-6xl mx-auto px-5 py-20">
+        <div className="grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-[#3B6D11]">See it for real</p>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">
+              This is the label your kitchen prints
+            </h2>
+            <p className="mt-3 text-gray-500 leading-relaxed">
+              Enter your ingredients once and AllerSafe produces Natasha&apos;s Law PPDS labels with the
+              full ingredient list, allergens emphasised, ready to print and stick on. Your allergen
+              matrix and QR menu are generated from the same data — change a recipe and everything
+              updates together.
+            </p>
+            <ul className="mt-5 space-y-2 text-sm text-gray-600">
+              <li className="flex items-start gap-2"><span className="text-[#3B6D11]">✓</span>Ingredients listed in descending weight order</li>
+              <li className="flex items-start gap-2"><span className="text-[#3B6D11]">✓</span>All 14 UK allergens emphasised automatically</li>
+              <li className="flex items-start gap-2"><span className="text-[#3B6D11]">✓</span>A4 sheets of cut-out labels, ready for the counter</li>
+            </ul>
+            <Link
+              href="/demo"
+              className="inline-block mt-6 text-sm font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-xl px-5 py-3"
+            >
+              See a live example menu →
+            </Link>
+          </div>
+
+          {/* Example PPDS label, rendered with real CSS */}
+          <div className="flex justify-center">
+            <div className="w-full max-w-sm rounded-lg border-2 border-[#3B6D11] bg-white p-5 shadow-sm">
+              <p className="text-lg font-bold text-gray-900">Chicken &amp; pesto baguette</p>
+              <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-gray-500">Ingredients</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-gray-800">
+                Baguette (<strong className="uppercase">wheat flour</strong>, water, yeast, salt), roast
+                chicken (32%), basil pesto (basil, <strong className="uppercase">pine nuts</strong>,{' '}
+                <strong className="uppercase">parmesan cheese (milk)</strong>, olive oil, garlic), rocket,{' '}
+                <strong className="uppercase">butter (milk)</strong>.
+              </p>
+              <p className="mt-1.5 text-[10px] italic text-gray-400">Allergens shown in BOLD CAPS</p>
+              <div className="mt-3 border-t border-gray-200 pt-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Contains</p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {['Cereals / gluten', 'Tree nuts', 'Milk'].map(a => (
+                    <span key={a} className="rounded-md bg-[#EAF3DE] px-2 py-0.5 text-[11px] font-semibold text-[#27500A]">{a}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3 border-t border-gray-200 pt-2.5 text-[11px] text-gray-600">
+                <p><span className="font-semibold">Use by:</span> 03 July · <span className="font-semibold">Storage:</span> keep refrigerated below 5°C</p>
+                <p className="mt-1">Made by The Corner Bakery, 12 Market Street, York</p>
+              </div>
+              <p className="mt-3 text-[9px] text-gray-400">Printed with AllerSafe · allersafe.org</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="max-w-6xl mx-auto px-5 py-20 pt-0">
         <div className="text-center max-w-2xl mx-auto">
           <p className="text-sm font-bold uppercase tracking-wide text-[#3B6D11]">Everything in one place</p>
           <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight">Compliance that runs itself</h2>
