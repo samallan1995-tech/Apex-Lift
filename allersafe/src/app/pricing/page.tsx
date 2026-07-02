@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PLANS, SETUP_ADDON } from '@/lib/plans';
+import { Faq } from '@/components/Faq';
 
 export const metadata = {
   title: 'Pricing — AllerSafe',
@@ -93,7 +94,9 @@ export default function PricingPage() {
           </Link>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-10 max-w-xl mx-auto leading-relaxed">
+        <Faq />
+
+        <p className="text-center text-xs text-gray-400 mt-4 max-w-xl mx-auto leading-relaxed">
           Prices in GBP. Payments processed securely by Stripe. AllerSafe is a management tool — your business remains legally responsible for verifying all allergen declarations against supplier specifications.
         </p>
       </main>

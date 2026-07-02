@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PLANS, SETUP_ADDON } from '@/lib/plans';
+import { Faq } from '@/components/Faq';
 
 export const metadata = {
   title: 'AllerSafe — allergen labelling UK food businesses can trust',
@@ -255,6 +256,8 @@ export default function HomePage() {
           <Link href="/pricing" className="font-semibold text-[#3B6D11] hover:underline">Compare plans</Link>
         </p>
       </section>
+
+      <Faq />
 
       <section className="bg-[#0E2A06]">
         <div className="max-w-4xl mx-auto px-5 py-16 text-center">
