@@ -17,7 +17,8 @@ export default function MatrixPage() {
     if (!activeVenueId) return;
     setLoading(true);
     const res = await fetch(`/api/dishes?venue_id=${activeVenueId}`);
-    setDishes(await res.json());
+    const data = await res.json();
+    setDishes(Array.isArray(data) ? data : []);
     setLoading(false);
   }, [activeVenueId]);
 
@@ -27,6 +28,7 @@ export default function MatrixPage() {
     setDownloading(true);
     try {
       const res = await fetch(`/api/pdf/matrix?venue_id=${activeVenueId}`);
+      if (!res.ok) { alert('Could not generate the PDF. Please try again.'); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

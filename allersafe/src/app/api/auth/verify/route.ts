@@ -6,10 +6,16 @@ import { getSession } from '@/lib/session';
 const schema = z.object({ email: z.string().email(), code: z.string().length(6) });
 
 export async function POST(req: Request) {
+  let email: string, code: string;
   try {
-    const body = await req.json();
-    const { email, code } = schema.parse(body);
+    const parsed = schema.parse(await req.json());
+    email = parsed.email;
+    code = parsed.code;
+  } catch {
+    return NextResponse.json({ error: 'Invalid or expired code' }, { status: 400 });
+  }
 
+  try {
     const valid = await verifyMagicCode(email.toLowerCase(), code);
     if (!valid) {
       return NextResponse.json({ error: 'Invalid or expired code' }, { status: 400 });

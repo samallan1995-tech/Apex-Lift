@@ -59,10 +59,30 @@ export const SETUP_ADDON = {
  *  0 = no free tier; a paid plan is required before any venue can be created. */
 export const FREE_VENUE_LIMIT = 0;
 
+/** Length of the no-card free trial every new account gets at first sign-in. */
+export const TRIAL_DAYS = 14;
+
+/** Plan whose limits a trial account gets (1 venue, full feature access). */
+export const TRIAL_PLAN: PlanKey = 'single';
+
 const ACTIVE_STATUSES = new Set(['active', 'trialing', 'past_due']);
 
 export function isActiveStatus(status: string | null | undefined): boolean {
   return !!status && ACTIVE_STATUSES.has(status);
+}
+
+/**
+ * True when the account has a real, Stripe-backed subscription that grants
+ * access (active, in a Stripe-managed trial, or past_due in grace). When this is
+ * false the account falls back to the no-card free trial, which is derived from
+ * the account's age — so an `incomplete`/abandoned checkout or a missing row
+ * never locks a new user out during their first {@link TRIAL_DAYS} days.
+ */
+export function hasPaidAccess(
+  status: string | null | undefined,
+  stripeSubscriptionId: string | null | undefined
+): boolean {
+  return !!stripeSubscriptionId && isActiveStatus(status);
 }
 
 /** Venue allowance for a given plan + status. */

@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { Venue } from '@/types';
 
@@ -11,6 +12,7 @@ interface Props {
 
 export function QRMenuCard({ venue, baseUrl }: Props) {
   const menuUrl = `${baseUrl}/menu/${venue.slug}`;
+  const [copied, setCopied] = useState(false);
 
   function downloadSVG() {
     const svg = document.getElementById(`qr-${venue.id}`);
@@ -26,6 +28,8 @@ export function QRMenuCard({ venue, baseUrl }: Props) {
 
   function copyLink() {
     navigator.clipboard.writeText(menuUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   return (
@@ -48,7 +52,7 @@ export function QRMenuCard({ venue, baseUrl }: Props) {
           onClick={copyLink}
           className="flex-1 text-xs py-1.5 px-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-gray-700"
         >
-          Copy link
+          {copied ? 'Copied!' : 'Copy link'}
         </button>
         <button
           onClick={downloadSVG}

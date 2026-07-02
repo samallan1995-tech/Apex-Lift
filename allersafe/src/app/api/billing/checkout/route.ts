@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/session';
 import { getStripe, PLANS, SETUP_ADDON } from '@/lib/stripe';
-import { getSubscription, setStripeCustomerId } from '@/lib/queries';
+import { getSubscription, setStripeCustomerId, getUserById, trialEndsAtFor } from '@/lib/queries';
+import { hasPaidAccess } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 
@@ -47,6 +48,19 @@ export async function POST(req: Request) {
       );
     }
 
+    // If they're still inside their no-card trial (derived from account age),
+    // carry the remaining trial over to Stripe so the first charge lands on the
+    // original trial-end date — never earlier. Stripe requires trial_end ≥ ~48h
+    // out, so anything sooner just bills now (they've had their free fortnight).
+    const now = Math.floor(Date.now() / 1000);
+    const user = await getUserById(session.userId!);
+    const trialEndsAt = user ? trialEndsAtFor(user.created_at) : 0;
+    const trialEnd =
+      !hasPaidAccess(sub?.status, sub?.stripe_subscription_id) &&
+      trialEndsAt > now + 2 * 24 * 60 * 60
+        ? trialEndsAt
+        : undefined;
+
     const checkout = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: isSetup ? 'payment' : 'subscription',
@@ -57,7 +71,13 @@ export async function POST(req: Request) {
       metadata: { userId: session.userId!, product },
       ...(isSetup
         ? {}
-        : { subscription_data: { metadata: { userId: session.userId! } } }),
+        : {
+            payment_method_collection: 'always',
+            subscription_data: {
+              metadata: { userId: session.userId! },
+              ...(trialEnd ? { trial_end: trialEnd } : {}),
+            },
+          }),
     });
 
     return NextResponse.json({ url: checkout.url });

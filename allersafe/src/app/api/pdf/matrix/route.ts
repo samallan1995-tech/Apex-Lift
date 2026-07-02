@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/session';
 import { getDishesWithAllergens, getVenueById, userOwnsVenue } from '@/lib/queries';
+import { blockIfNoAccess } from '@/lib/access';
 import { ALLERGENS } from '@/lib/allergens';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { AllergenMatrixDocument } from '@/components/pdf/MatrixDocument';
@@ -9,6 +10,8 @@ import React from 'react';
 export async function GET(req: Request) {
   const session = await requireAuth();
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  const blocked = await blockIfNoAccess(session.userId!);
+  if (blocked) return blocked;
 
   const { searchParams } = new URL(req.url);
   const venueId = searchParams.get('venue_id');

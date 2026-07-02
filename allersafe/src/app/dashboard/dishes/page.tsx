@@ -29,14 +29,16 @@ export default function DishesPage() {
     if (!activeVenueId) return;
     setLoading(true);
     const res = await fetch(`/api/dishes?venue_id=${activeVenueId}`);
-    setDishes(await res.json());
+    const data = await res.json();
+    setDishes(Array.isArray(data) ? data : []);
     setLoading(false);
   }, [activeVenueId]);
 
   const fetchIngredients = useCallback(async () => {
     if (!activeVenueId) return;
     const res = await fetch(`/api/ingredients?venue_id=${activeVenueId}`);
-    setIngredients(await res.json());
+    const data = await res.json();
+    setIngredients(Array.isArray(data) ? data : []);
   }, [activeVenueId]);
 
   useEffect(() => {
@@ -95,10 +97,22 @@ export default function DishesPage() {
     setSaving(true);
     setError('');
     try {
+      // Merge duplicate rows for the same ingredient (sum their weights) so a
+      // dish never lists the same ingredient twice on its label.
+      const merged = Object.values(
+        dishIngredients
+          .filter(i => i.ingredient_id)
+          .reduce<Record<string, IngredientRow>>((acc, r) => {
+            acc[r.ingredient_id] = acc[r.ingredient_id]
+              ? { ...acc[r.ingredient_id], weight_grams: acc[r.ingredient_id].weight_grams + r.weight_grams }
+              : { ...r };
+            return acc;
+          }, {})
+      );
       const res = await fetch(`/api/dishes/${selected.id}/ingredients`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ingredients: dishIngredients.filter(i => i.ingredient_id) }),
+        body: JSON.stringify({ ingredients: merged }),
       });
       if (!res.ok) throw new Error(await res.text());
       await fetchDishes();

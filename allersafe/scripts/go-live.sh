@@ -38,7 +38,7 @@ cd "$SCRIPT_DIR/.."
 command -v vercel >/dev/null 2>&1 || npm install -g vercel
 
 sk ()  { curl -fsS https://api.stripe.com/v1/"$1" -u "$STRIPE_SECRET_KEY": "${@:2}"; }
-jget () { python3 -c "import sys,json;print(json.load(sys.stdin)$1)"; }
+jget () { node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{console.log(JSON.parse(s)'"$1"')})'; }
 
 # Reuse pre-created Price IDs if supplied (STRIPE_PRICE_*), otherwise create them.
 if [ -n "${STRIPE_PRICE_SINGLE:-}" ] && [ -n "${STRIPE_PRICE_MULTI:-}" ] && [ -n "${STRIPE_PRICE_SETUP:-}" ]; then
@@ -84,11 +84,7 @@ echo "▶ First production deploy…"
 # per-deploy URL, so it keeps pointing at the newest production deployment).
 PROD_HOST=$(curl -fsS "https://api.vercel.com/v9/projects/$PROJECT?teamId=$TEAM" \
   -H "Authorization: Bearer $VERCEL_TOKEN" \
-  | python3 -c "import sys,json
-d=json.load(sys.stdin)
-t=(d.get('targets') or {}).get('production') or {}
-al=[a for a in (t.get('alias') or []) if a.endswith('.vercel.app')]
-print(sorted(al,key=len)[0] if al else d['name']+'.vercel.app')")
+  | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{const d=JSON.parse(s);const t=(d.targets&&d.targets.production)||{};const al=(t.alias||[]).filter(a=>a.endsWith(".vercel.app"));console.log(al.length?al.sort((x,y)=>x.length-y.length)[0]:d.name+".vercel.app")})')
 APP_URL="https://$PROD_HOST"
 echo "  production URL: $APP_URL"
 

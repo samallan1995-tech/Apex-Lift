@@ -5,6 +5,10 @@ import { useVenue } from '@/lib/venue-context';
 import type { DishWithAllergens, Ingredient } from '@/types';
 import { ALLERGEN_KEYS } from '@/lib/allergens';
 import type { AllergenKey } from '@/lib/allergens';
+import { OnboardingChecklist } from '@/components/OnboardingChecklist';
+import {
+  IconDishes, IconIngredients, IconMatrix, IconCheck, IconQr, IconLabels,
+} from '@/components/icons';
 
 export default function DashboardPage() {
   const { activeVenueId, venues } = useVenue();
@@ -35,12 +39,12 @@ export default function DashboardPage() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
+  const onboardingComplete = ingredients.length > 0 && dishes.length > 0;
+
   if (!activeVenueId) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <p className="text-5xl mb-4">🏪</p>
-        <h2 className="text-xl font-semibold text-gray-700">Create your first venue</h2>
-        <p className="text-gray-500 mt-2 text-sm max-w-xs">Click the venue switcher in the sidebar to create your first venue and start adding dishes.</p>
+      <div className="max-w-3xl">
+        <OnboardingChecklist hasVenue={false} ingredientCount={0} dishCount={0} />
       </div>
     );
   }
@@ -52,21 +56,31 @@ export default function DashboardPage() {
         {venue?.address && <p className="text-gray-500 text-sm mt-0.5">{venue.address}</p>}
       </div>
 
+      {!loading && !onboardingComplete && (
+        <OnboardingChecklist
+          hasVenue
+          ingredientCount={ingredients.length}
+          dishCount={dishes.length}
+        />
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Dishes', value: dishes.length, icon: '🍽️', href: '/dashboard/dishes' },
-          { label: 'Ingredients', value: ingredients.length, icon: '🥗', href: '/dashboard/ingredients' },
-          { label: 'Allergens declared', value: Object.values(allergenCoverage).filter(v => v > 0).length, icon: '⚠️', href: '/dashboard/matrix' },
-          { label: 'Available dishes', value: dishes.filter(d => d.available).length, icon: '✅', href: '/dashboard/dishes' },
+          { label: 'Dishes', value: dishes.length, Icon: IconDishes, href: '/dashboard/dishes' },
+          { label: 'Ingredients', value: ingredients.length, Icon: IconIngredients, href: '/dashboard/ingredients' },
+          { label: 'Allergens declared', value: Object.values(allergenCoverage).filter(v => v > 0).length, Icon: IconMatrix, href: '/dashboard/matrix' },
+          { label: 'Available dishes', value: dishes.filter(d => d.available).length, Icon: IconCheck, href: '/dashboard/dishes' },
         ].map(stat => (
           <Link
             key={stat.label}
             href={stat.href}
-            className="bg-white rounded-xl border border-gray-200 p-4 hover:border-green-400 hover:shadow-sm transition-all"
+            className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#9DE26B] hover:shadow-sm transition-all"
           >
-            <p className="text-2xl">{stat.icon}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">{loading ? '—' : stat.value}</p>
+            <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#EAF3DE] text-[#27500A]">
+              <stat.Icon className="w-5 h-5" />
+            </span>
+            <p className="text-2xl font-bold text-gray-900 mt-3">{loading ? '—' : stat.value}</p>
             <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
           </Link>
         ))}
@@ -78,10 +92,10 @@ export default function DashboardPage() {
           <h2 className="font-semibold text-gray-900 mb-3">Quick actions</h2>
           <div className="space-y-2">
             {[
-              { label: 'Add ingredient', href: '/dashboard/ingredients', icon: '➕' },
-              { label: 'Add dish', href: '/dashboard/dishes', icon: '🍳' },
-              { label: 'Download allergen matrix', href: `/api/pdf/matrix?venue_id=${activeVenueId}`, icon: '📥', external: true },
-              { label: 'View public QR menu', href: `/menu/${venue?.slug}`, icon: '📱', external: true },
+              { label: 'Add ingredient', href: '/dashboard/ingredients', Icon: IconIngredients },
+              { label: 'Add dish', href: '/dashboard/dishes', Icon: IconDishes },
+              { label: 'Download allergen matrix', href: `/api/pdf/matrix?venue_id=${activeVenueId}`, Icon: IconLabels, external: true },
+              { label: 'View public QR menu', href: `/menu/${venue?.slug}`, Icon: IconQr, external: true },
             ].map(action => (
               <Link
                 key={action.label}
@@ -89,7 +103,7 @@ export default function DashboardPage() {
                 target={action.external ? '_blank' : undefined}
                 className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 text-sm text-gray-700 transition-colors group"
               >
-                <span className="text-base">{action.icon}</span>
+                <span className="text-[#3B6D11]"><action.Icon className="w-[18px] h-[18px]" /></span>
                 <span>{action.label}</span>
                 <svg className="w-4 h-4 ml-auto text-gray-400 group-hover:text-gray-600" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/session';
 import { updateDish, deleteDish, dishBelongsToUser } from '@/lib/queries';
+import { blockIfNoAccess } from '@/lib/access';
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200),
@@ -12,6 +13,8 @@ const updateSchema = z.object({
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const session = await requireAuth();
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  const blocked = await blockIfNoAccess(session.userId!);
+  if (blocked) return blocked;
   if (!(await dishBelongsToUser(session.userId!, params.id)))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 

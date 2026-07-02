@@ -94,22 +94,34 @@ export function BillingClient({ billing }: { billing: BillingState }) {
           <div>
             <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">Current plan</p>
             <p className="text-lg font-semibold text-gray-900 mt-0.5">
-              {currentPlan ? PLANS[currentPlan as PlanKey].name : 'Free / no plan'}
+              {currentPlan
+                ? PLANS[currentPlan as PlanKey].name
+                : billing.isTrial
+                  ? 'Free trial'
+                  : billing.trialExpired
+                    ? 'Trial ended'
+                    : 'Free / no plan'}
               <span
                 className={
                   'ml-2 text-xs font-medium px-2 py-0.5 rounded-full ' +
-                  (active
+                  (active || billing.isTrial
                     ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-600')
+                    : billing.trialExpired
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-gray-100 text-gray-600')
                 }
               >
-                {STATUS_LABEL[billing.status] ?? billing.status}
+                {billing.isTrial
+                  ? `${billing.trialDaysLeft} day${billing.trialDaysLeft === 1 ? '' : 's'} left`
+                  : billing.trialExpired
+                    ? 'Ended — choose a plan'
+                    : STATUS_LABEL[billing.status] ?? billing.status}
               </span>
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              Using {billing.venueCount} of {billing.venueLimit} venue
-              {billing.venueLimit !== 1 ? 's' : ''}
-              {renewLabel && active ? ` · renews ${renewLabel}` : ''}
+              {billing.isTrial
+                ? 'No payment taken yet — you won’t be charged unless you choose a plan.'
+                : `Using ${billing.venueCount} of ${billing.venueLimit} venue${billing.venueLimit !== 1 ? 's' : ''}${renewLabel && active ? ` · renews ${renewLabel}` : ''}`}
             </p>
           </div>
           {billing.plan && (
@@ -182,6 +194,13 @@ export function BillingClient({ billing }: { billing: BillingState }) {
             {SETUP_ADDON.blurb} — one-off £{SETUP_ADDON.priceGBP}. Send us your menu and we&apos;ll build out
             your ingredients and dishes for you.
           </p>
+          {billing.setupPaid && (
+            <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mt-2">
+              ✅ Order received. Email your menu and supplier allergen specs to{' '}
+              <a href="mailto:support@allersafe.org" className="underline font-medium">support@allersafe.org</a>{' '}
+              and we&apos;ll set everything up within 3 working days.
+            </p>
+          )}
         </div>
         <Button
           variant="secondary"
@@ -194,7 +213,7 @@ export function BillingClient({ billing }: { billing: BillingState }) {
       </div>
 
       <p className="text-xs text-gray-400">
-        Payments are processed securely by Stripe. Prices include VAT where applicable. You can cancel
+        Payments are processed securely by Stripe. Prices are in GBP. You can cancel
         or change your plan at any time from the &ldquo;Manage billing&rdquo; portal.
       </p>
     </div>

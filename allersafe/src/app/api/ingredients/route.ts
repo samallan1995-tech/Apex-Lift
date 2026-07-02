@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/session';
 import { getIngredients, createIngredient, userOwnsVenue } from '@/lib/queries';
+import { blockIfNoAccess } from '@/lib/access';
 import { ALLERGEN_KEYS } from '@/lib/allergens';
 
 const allergenFields = Object.fromEntries(ALLERGEN_KEYS.map(k => [k, z.boolean().optional()]));
@@ -30,6 +31,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await requireAuth();
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  const blocked = await blockIfNoAccess(session.userId!);
+  if (blocked) return blocked;
 
   const data = createSchema.parse(await req.json());
   if (!(await userOwnsVenue(session.userId!, data.venue_id)))

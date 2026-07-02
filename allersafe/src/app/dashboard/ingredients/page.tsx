@@ -41,7 +41,7 @@ export default function IngredientsPage() {
     setLoading(true);
     const res = await fetch(`/api/ingredients?venue_id=${activeVenueId}`);
     const data = await res.json();
-    setIngredients(data);
+    setIngredients(Array.isArray(data) ? data : []);
     setLoading(false);
   }, [activeVenueId]);
 

@@ -3,7 +3,14 @@ import { getDb as _getDb, unixNow } from './db';
 import { ALLERGEN_KEYS } from './allergens';
 import type { AllergenKey } from './allergens';
 import type { Ingredient, Dish, DishIngredient, DishWithAllergens, Venue, User, Subscription, BillingState } from '@/types';
-import { venueLimitFor, FREE_VENUE_LIMIT } from './plans';
+import {
+  venueLimitFor,
+  FREE_VENUE_LIMIT,
+  TRIAL_DAYS,
+  TRIAL_PLAN,
+  PLANS,
+  hasPaidAccess,
+} from './plans';
 
 // Cast to any so the untyped Supabase client doesn't infer `never` on all DML operations.
 function getDb(): any { return _getDb(); }
@@ -51,23 +58,42 @@ export async function findOrCreateUser(email: string): Promise<User> {
 
 // ── Magic codes ───────────────────────────────────────────────────────────────
 
+/** Count login codes issued to an email since `sinceUnix` — used to rate-limit /api/auth/send. */
+export async function recentCodeCount(email: string, sinceUnix: number): Promise<number> {
+  const db = getDb();
+  const { data } = await db
+    .from('magic_codes')
+    .select('id')
+    .eq('email', email.toLowerCase())
+    .gt('created_at', sinceUnix);
+  return (data as unknown[] | null)?.length ?? 0;
+}
+
 export async function createMagicCode(email: string, code: string): Promise<void> {
   const db = getDb();
+  const lower = email.toLowerCase();
+  // Invalidate any earlier unused codes so exactly one code is ever valid at a
+  // time — removes the brute-force amplification of many concurrent live codes.
+  await db.from('magic_codes').update({ used: 1 } as any).eq('email', lower).eq('used', 0);
   await db.from('magic_codes').insert({
     id: crypto.randomUUID(),
-    email: email.toLowerCase(),
+    email: lower,
     code,
     expires_at: unixNow() + 15 * 60,
   } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
+/** Max wrong guesses before a code is locked (needs the `attempts` column; no-ops without it). */
+const MAX_CODE_ATTEMPTS = 5;
+
 export async function verifyMagicCode(email: string, code: string): Promise<boolean> {
   const db = getDb();
+  // Find the one active code for this email regardless of what was submitted, so
+  // we can count wrong guesses against it and lock it after too many.
   const { data } = await db
     .from('magic_codes')
     .select()
     .eq('email', email.toLowerCase())
-    .eq('code', code)
     .eq('used', 0)
     .gt('expires_at', unixNow())
     .order('created_at', { ascending: false })
@@ -75,8 +101,18 @@ export async function verifyMagicCode(email: string, code: string): Promise<bool
     .maybeSingle();
 
   if (!data) return false;
-  await db.from('magic_codes').update({ used: 1 } as any).eq('id', (data as Record<string, unknown>).id);
-  return true;
+  const row = data as Record<string, unknown>;
+  const attempts = Number(row.attempts ?? 0);
+  if (attempts >= MAX_CODE_ATTEMPTS) return false; // locked — request a fresh code
+
+  if (row.code === code.toUpperCase().trim()) {
+    await db.from('magic_codes').update({ used: 1 } as any).eq('id', row.id);
+    return true;
+  }
+
+  // Wrong guess — count it. (Silently no-ops until the `attempts` column exists.)
+  await db.from('magic_codes').update({ attempts: attempts + 1 } as any).eq('id', row.id);
+  return false;
 }
 
 // ── Venues ────────────────────────────────────────────────────────────────────
@@ -323,6 +359,22 @@ export async function getSubscriptionByCustomerId(customerId: string): Promise<S
   return (data as Subscription | null) ?? null;
 }
 
+/**
+ * Accounts that are 12–13 days old — i.e. whose 14-day trial ends in 1–2 days.
+ * The daily reminder cron catches each account in this window exactly once, so
+ * no "reminded" flag is needed.
+ */
+export async function getUsersInTrialReminderWindow(): Promise<User[]> {
+  const db = getDb();
+  const now = unixNow();
+  const { data } = await db
+    .from('users')
+    .select()
+    .gte('created_at', now - 13 * 24 * 60 * 60)
+    .lt('created_at', now - 12 * 24 * 60 * 60);
+  return (data ?? []) as User[];
+}
+
 /** Number of venues the user owns (created_by). */
 export async function countVenuesForUser(userId: string): Promise<number> {
   const venues = await getVenuesForUser(userId);
@@ -348,6 +400,18 @@ export async function ensureSubscription(userId: string): Promise<Subscription> 
   };
   await db.from('allersafe_subscriptions').insert(row);
   return row;
+}
+
+/** Fetch a user row by id — used to derive the free-trial window from account age. */
+export async function getUserById(userId: string): Promise<User | null> {
+  const db = getDb();
+  const { data } = await db.from('users').select().eq('id', userId).maybeSingle();
+  return (data as User | null) ?? null;
+}
+
+/** Unix seconds the no-card free trial ends for an account created at `createdAt`. */
+export function trialEndsAtFor(createdAt: number): number {
+  return createdAt + TRIAL_DAYS * 24 * 60 * 60;
 }
 
 export async function setStripeCustomerId(userId: string, customerId: string): Promise<void> {
@@ -385,24 +449,55 @@ export async function updateSubscription(userId: string, patch: SubscriptionUpda
 }
 
 export async function getBillingState(userId: string): Promise<BillingState> {
-  const sub = await getSubscription(userId);
-  const venueCount = await countVenuesForUser(userId);
-  if (!sub) {
-    return {
-      plan: null,
-      status: 'none',
-      venueLimit: FREE_VENUE_LIMIT,
-      venueCount,
-      setupPaid: false,
-      currentPeriodEnd: null,
-    };
+  const [sub, user, venueCount] = await Promise.all([
+    getSubscription(userId),
+    getUserById(userId),
+    countVenuesForUser(userId),
+  ]);
+  const now = unixNow();
+
+  // Every account gets a no-card free trial derived purely from its age, so a
+  // missing row or an abandoned ("incomplete") Stripe checkout can never lock a
+  // new user out during their first TRIAL_DAYS.
+  const trialEndsAt = trialEndsAtFor(user?.created_at ?? now);
+  const paid = hasPaidAccess(sub?.status, sub?.stripe_subscription_id);
+  const inTrialWindow = now < trialEndsAt;
+
+  let venueLimit: number;
+  let isTrial = false;
+  let trialExpired = false;
+  if (paid) {
+    venueLimit = venueLimitFor(sub!.plan, sub!.status);
+  } else if (inTrialWindow) {
+    venueLimit = PLANS[TRIAL_PLAN].venueLimit;
+    isTrial = true;
+  } else {
+    venueLimit = FREE_VENUE_LIMIT;
+    trialExpired = true;
   }
+
   return {
-    plan: sub.plan,
-    status: sub.status,
-    venueLimit: venueLimitFor(sub.plan, sub.status),
+    plan: sub?.plan ?? null,
+    status: sub?.status ?? 'none',
+    venueLimit,
     venueCount,
-    setupPaid: sub.setup_paid,
-    currentPeriodEnd: sub.current_period_end,
+    setupPaid: sub?.setup_paid ?? false,
+    currentPeriodEnd: sub?.current_period_end ?? null,
+    isTrial,
+    trialDaysLeft: isTrial ? Math.max(0, Math.ceil((trialEndsAt - now) / 86400)) : 0,
+    trialEndsAt: isTrial ? trialEndsAt : null,
+    trialExpired,
+    hasAccess: paid || isTrial,
   };
+}
+
+/**
+ * Lean check of whether an account may use the app right now — true when they
+ * have a paid plan or are still inside their no-card trial window. Used to gate
+ * the API once a trial has lapsed (cheaper than full getBillingState).
+ */
+export async function hasActiveAccess(userId: string): Promise<boolean> {
+  const [sub, user] = await Promise.all([getSubscription(userId), getUserById(userId)]);
+  if (hasPaidAccess(sub?.status, sub?.stripe_subscription_id)) return true;
+  return unixNow() < trialEndsAtFor(user?.created_at ?? unixNow());
 }

@@ -2,36 +2,50 @@
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
-import type { Venue } from '@/types';
+import type { Venue, BillingState } from '@/types';
 import { VenueProvider, useVenue } from '@/lib/venue-context';
 import { VenueSwitcher } from '@/components/VenueSwitcher';
+import { TrialBanner } from '@/components/TrialBanner';
+import {
+  IconShield, IconOverview, IconIngredients, IconDishes,
+  IconMatrix, IconLabels, IconQr, IconBilling,
+} from '@/components/icons';
 import { cn } from '@/lib/utils';
 
 const NAV = [
-  { href: '/dashboard', label: 'Overview', icon: '📊', exact: true },
-  { href: '/dashboard/ingredients', label: 'Ingredients', icon: '🥗' },
-  { href: '/dashboard/dishes', label: 'Dishes', icon: '🍽️' },
-  { href: '/dashboard/matrix', label: 'Allergen Matrix', icon: '📋' },
-  { href: '/dashboard/labels', label: 'PPDS Labels', icon: '🏷️' },
-  { href: '/dashboard/qr', label: 'QR Menu', icon: '📱' },
-  { href: '/dashboard/billing', label: 'Billing & plan', icon: '💳' },
+  { href: '/dashboard', label: 'Overview', Icon: IconOverview, exact: true },
+  { href: '/dashboard/ingredients', label: 'Ingredients', Icon: IconIngredients },
+  { href: '/dashboard/dishes', label: 'Dishes', Icon: IconDishes },
+  { href: '/dashboard/matrix', label: 'Allergen matrix', Icon: IconMatrix },
+  { href: '/dashboard/labels', label: 'PPDS labels', Icon: IconLabels },
+  { href: '/dashboard/qr', label: 'QR menu', Icon: IconQr },
+  { href: '/dashboard/billing', label: 'Billing & plan', Icon: IconBilling },
 ];
 
 interface Props {
   email: string;
   venues: Venue[];
+  billing: BillingState;
   children: React.ReactNode;
 }
 
-export function DashboardShell({ email, venues, children }: Props) {
+export function DashboardShell({ email, venues, billing, children }: Props) {
   return (
     <VenueProvider initialVenues={venues}>
-      <Inner email={email}>{children}</Inner>
+      <Inner email={email} billing={billing}>{children}</Inner>
     </VenueProvider>
   );
 }
 
-function Inner({ email, children }: { email: string; children: React.ReactNode }) {
+function Inner({
+  email,
+  billing,
+  children,
+}: {
+  email: string;
+  billing: BillingState;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { activeVenueId, venues, setActiveVenueId, addVenue } = useVenue();
@@ -39,7 +53,7 @@ function Inner({ email, children }: { email: string; children: React.ReactNode }
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
+    router.push('/login');
   }
 
   return (
@@ -53,21 +67,23 @@ function Inner({ email, children }: { email: string; children: React.ReactNode }
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 w-64 flex flex-col bg-green-900 text-white transition-transform duration-200 lg:relative lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-30 w-64 flex flex-col bg-[#0E2A06] text-white transition-transform duration-200 lg:relative lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         {/* Brand */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-green-800">
-          <span className="text-2xl">🛡️</span>
+        <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/10">
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#9DE26B] text-[#0E2A06]">
+            <IconShield className="w-5 h-5" />
+          </span>
           <div>
             <p className="font-bold text-lg leading-none">AllerSafe</p>
-            <p className="text-xs text-green-300 mt-0.5">Allergen management</p>
+            <p className="text-xs text-[#9DCB8A] mt-1">Allergen management</p>
           </div>
         </div>
 
         {/* Venue switcher */}
-        <div className="px-3 py-3 border-b border-green-800">
+        <div className="px-3 py-3 border-b border-white/10">
           <VenueSwitcher
             venues={venues}
             activeVenueId={activeVenueId}
@@ -87,10 +103,12 @@ function Inner({ email, children }: { email: string; children: React.ReactNode }
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  active ? 'bg-green-700 text-white' : 'text-green-200 hover:bg-green-800 hover:text-white'
+                  active
+                    ? 'bg-white/10 text-white'
+                    : 'text-[#9DCB8A] hover:bg-white/5 hover:text-white'
                 )}
               >
-                <span className="text-base">{item.icon}</span>
+                <item.Icon className={cn('w-[18px] h-[18px]', active ? 'text-[#9DE26B]' : '')} />
                 {item.label}
               </Link>
             );
@@ -98,11 +116,11 @@ function Inner({ email, children }: { email: string; children: React.ReactNode }
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-4 border-t border-green-800 space-y-2">
-          <p className="text-xs text-green-400 truncate">{email}</p>
+        <div className="px-3 py-4 border-t border-white/10 space-y-2">
+          <p className="text-xs text-[#9DCB8A] truncate">{email}</p>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-green-300 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-sm text-[#9DCB8A] hover:text-white transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
@@ -129,6 +147,7 @@ function Inner({ email, children }: { email: string; children: React.ReactNode }
             </p>
           )}
         </header>
+        <TrialBanner billing={billing} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {children}
         </main>

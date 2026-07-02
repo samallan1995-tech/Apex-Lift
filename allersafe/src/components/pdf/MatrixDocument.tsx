@@ -47,8 +47,8 @@ export function AllergenMatrixDocument({ venue, dishes, allergens }: Props) {
         </Text>
 
         <View style={styles.table}>
-          {/* Header row */}
-          <View style={styles.headerRow}>
+          {/* Header row — repeats at the top of every page for long menus */}
+          <View style={styles.headerRow} fixed>
             <Text style={styles.dishCellHeader}>Dish</Text>
             {allergens.map(a => (
               <Text key={a.key} style={styles.allergenHeader}>{a.short}</Text>

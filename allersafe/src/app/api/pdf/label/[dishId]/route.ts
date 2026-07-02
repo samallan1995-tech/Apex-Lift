@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/session';
 import { getDishWithAllergens, dishBelongsToUser } from '@/lib/queries';
+import { blockIfNoAccess } from '@/lib/access';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { PPDSLabelDocument } from '@/components/pdf/LabelDocument';
 import React from 'react';
@@ -8,6 +9,8 @@ import React from 'react';
 export async function GET(_req: Request, { params }: { params: { dishId: string } }) {
   const session = await requireAuth();
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  const blocked = await blockIfNoAccess(session.userId!);
+  if (blocked) return blocked;
   if (!(await dishBelongsToUser(session.userId!, params.dishId)))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 

@@ -93,6 +93,16 @@ export interface BillingState {
   venueCount: number;
   setupPaid: boolean;
   currentPeriodEnd: number | null;
+  /** On a no-card free trial that is still running. */
+  isTrial: boolean;
+  /** Whole days left in the free trial (0 once expired). */
+  trialDaysLeft: number;
+  /** Unix seconds the free trial ends, if on one. */
+  trialEndsAt: number | null;
+  /** Free trial ended without subscribing — access is locked. */
+  trialExpired: boolean;
+  /** May use the app right now — paid plan or an unexpired trial. */
+  hasAccess: boolean;
 }
 
 export interface SessionData {

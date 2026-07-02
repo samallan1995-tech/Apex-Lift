@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
+import { Resend } from 'resend';
 import { getStripe, planForPriceId } from '@/lib/stripe';
 import {
   getSubscriptionByCustomerId,
@@ -7,6 +8,24 @@ import {
 } from '@/lib/queries';
 
 export const runtime = 'nodejs';
+
+/** Alert the business when someone buys the £49 concierge menu-setup add-on. */
+async function notifySetupPurchase(customerEmail: string | null): Promise<void> {
+  const to = process.env.OWNER_NOTIFY_EMAIL ?? 'support@allersafe.org';
+  const from = process.env.RESEND_FROM_EMAIL ?? 'AllerSafe <noreply@allersafe.org>';
+  try {
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from,
+      to,
+      subject: '💷 New £49 menu-setup order',
+      html: `<p>A customer just purchased the menu-setup add-on.</p>
+             <p><strong>Customer:</strong> ${customerEmail ?? 'unknown'}</p>
+             <p>Follow up to collect their menu + supplier allergen specs and build out their account.</p>`,
+    });
+  } catch (err) {
+    console.error('setup-purchase notification failed', err);
+  }
+}
 // Stripe needs the raw, unparsed request body for signature verification.
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +86,7 @@ export async function POST(req: Request) {
 
         if (cs.mode === 'payment' && cs.metadata?.product === 'setup') {
           await updateSubscription(userId, { setup_paid: true });
+          await notifySetupPurchase(cs.customer_details?.email ?? null);
         } else if (cs.mode === 'subscription' && cs.subscription) {
           const sub = await stripe.subscriptions.retrieve(cs.subscription as string);
           await applySubscription(userId, sub);
