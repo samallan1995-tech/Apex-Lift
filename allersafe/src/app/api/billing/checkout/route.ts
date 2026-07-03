@@ -7,7 +7,10 @@ import { hasPaidAccess } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 
-const schema = z.object({ product: z.enum(['single', 'multi', 'setup']) });
+const schema = z.object({
+  product: z.enum(['single', 'multi', 'setup']),
+  interval: z.enum(['month', 'year']).optional(),
+});
 
 function appUrl(req: Request): string {
   return (
@@ -22,7 +25,7 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
   try {
-    const { product } = schema.parse(await req.json());
+    const { product, interval = 'month' } = schema.parse(await req.json());
     const stripe = getStripe();
     const origin = appUrl(req);
 
@@ -39,13 +42,20 @@ export async function POST(req: Request) {
     }
 
     const isSetup = product === 'setup';
-    const priceEnv = isSetup ? SETUP_ADDON.priceEnv : PLANS[product].priceEnv;
+    const priceEnv = isSetup
+      ? SETUP_ADDON.priceEnv
+      : interval === 'year'
+        ? PLANS[product].priceEnvAnnual
+        : PLANS[product].priceEnv;
     const priceId = process.env[priceEnv];
     if (!priceId) {
-      return NextResponse.json(
-        { error: `Missing price configuration (${priceEnv})` },
-        { status: 500 }
-      );
+      // Annual prices are configured separately in Stripe — fail with a clear,
+      // user-facing message rather than a broken checkout.
+      const friendly =
+        interval === 'year' && !isSetup
+          ? 'Annual billing is not available yet — please choose monthly for now.'
+          : `Missing price configuration (${priceEnv})`;
+      return NextResponse.json({ error: friendly }, { status: 500 });
     }
 
     // If they're still inside their no-card trial (derived from account age),

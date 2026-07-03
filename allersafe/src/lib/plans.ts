@@ -1,15 +1,20 @@
 // Client-safe plan/pricing constants and helpers (no Stripe SDK import).
 
 export type PlanKey = 'single' | 'multi';
+export type BillingInterval = 'month' | 'year';
 
 export interface PlanConfig {
   key: PlanKey;
   name: string;
   priceGBP: number;
+  /** Annual price ("2 months free" vs 12 × monthly). */
+  annualPriceGBP: number;
   venueLimit: number;
   blurb: string;
-  /** Env var holding the Stripe recurring Price ID. */
+  /** Env var holding the Stripe recurring monthly Price ID. */
   priceEnv: 'STRIPE_PRICE_SINGLE' | 'STRIPE_PRICE_MULTI';
+  /** Env var holding the Stripe recurring annual Price ID. */
+  priceEnvAnnual: 'STRIPE_PRICE_SINGLE_ANNUAL' | 'STRIPE_PRICE_MULTI_ANNUAL';
   features: string[];
 }
 
@@ -18,9 +23,11 @@ export const PLANS: Record<PlanKey, PlanConfig> = {
     key: 'single',
     name: 'Single site',
     priceGBP: 15,
+    annualPriceGBP: 150,
     venueLimit: 1,
     blurb: 'One venue',
     priceEnv: 'STRIPE_PRICE_SINGLE',
+    priceEnvAnnual: 'STRIPE_PRICE_SINGLE_ANNUAL',
     features: [
       '1 venue',
       'Unlimited ingredients & dishes',
@@ -33,9 +40,11 @@ export const PLANS: Record<PlanKey, PlanConfig> = {
     key: 'multi',
     name: 'Multi-site',
     priceGBP: 29,
+    annualPriceGBP: 290,
     venueLimit: 5,
     blurb: 'Up to 5 venues',
     priceEnv: 'STRIPE_PRICE_MULTI',
+    priceEnvAnnual: 'STRIPE_PRICE_MULTI_ANNUAL',
     features: [
       'Up to 5 venues',
       'Everything in Single site',

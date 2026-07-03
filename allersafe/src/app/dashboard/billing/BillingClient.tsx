@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { PLANS, SETUP_ADDON, isActiveStatus } from '@/lib/plans';
-import type { PlanKey } from '@/lib/plans';
+import type { PlanKey, BillingInterval } from '@/lib/plans';
 import type { BillingState } from '@/types';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -20,9 +20,11 @@ export function BillingClient({ billing }: { billing: BillingState }) {
   const params = useSearchParams();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [interval, setInterval] = useState<BillingInterval>('month');
 
   const active = isActiveStatus(billing.status);
   const currentPlan = active ? billing.plan : null;
+  const annual = interval === 'year';
 
   async function startCheckout(product: PlanKey | 'setup') {
     setBusy(product);
@@ -31,7 +33,7 @@ export function BillingClient({ billing }: { billing: BillingState }) {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product }),
+        body: JSON.stringify({ product, interval: product === 'setup' ? undefined : interval }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data.error ?? 'Checkout failed');
@@ -132,6 +134,30 @@ export function BillingClient({ billing }: { billing: BillingState }) {
         </div>
       </div>
 
+      {/* Interval toggle */}
+      <div className="flex items-center gap-1">
+        <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1">
+          <button
+            onClick={() => setInterval('month')}
+            className={
+              'rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ' +
+              (!annual ? 'bg-green-800 text-white' : 'text-gray-600 hover:text-gray-900')
+            }
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setInterval('year')}
+            className={
+              'rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ' +
+              (annual ? 'bg-green-800 text-white' : 'text-gray-600 hover:text-gray-900')
+            }
+          >
+            Annual · 2 months free
+          </button>
+        </div>
+      </div>
+
       {/* Plans */}
       <div className="grid sm:grid-cols-2 gap-4">
         {(Object.values(PLANS) as typeof PLANS[PlanKey][]).map(plan => {
@@ -153,10 +179,13 @@ export function BillingClient({ billing }: { billing: BillingState }) {
                 )}
               </div>
               <p className="mt-2">
-                <span className="text-3xl font-bold text-gray-900">£{plan.priceGBP}</span>
-                <span className="text-gray-500 text-sm">/mo</span>
+                <span className="text-3xl font-bold text-gray-900">£{annual ? plan.annualPriceGBP : plan.priceGBP}</span>
+                <span className="text-gray-500 text-sm">/{annual ? 'yr' : 'mo'}</span>
               </p>
-              <p className="text-sm text-gray-500">{plan.blurb}</p>
+              <p className="text-sm text-gray-500">
+                {plan.blurb}
+                {annual && ` · £${(plan.annualPriceGBP / 12).toFixed(2)}/mo equivalent`}
+              </p>
               <ul className="mt-4 space-y-1.5 flex-1">
                 {plan.features.map(f => (
                   <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
