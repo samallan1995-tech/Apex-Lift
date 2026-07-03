@@ -36,7 +36,7 @@ export function LegalLayout({
             <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#9DE26B] text-[#0E2A06]"><Shield className="w-5 h-5" /></span>
             <span className="text-lg font-bold text-white">AllerSafe</span>
           </Link>
-          <Link href="/login" className="ml-auto text-sm font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-lg px-4 py-2">
+          <Link href="/signup" className="ml-auto text-sm font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-lg px-4 py-2">
             Start free
           </Link>
         </div>

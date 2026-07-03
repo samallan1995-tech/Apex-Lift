@@ -89,7 +89,7 @@ export default function HomePage() {
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-white hover:text-[#9DE26B]">Sign in</Link>
-            <Link href="/login" className="text-sm font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-lg px-4 py-2">
+            <Link href="/signup" className="text-sm font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-lg px-4 py-2">
               Start free
             </Link>
           </div>
@@ -108,7 +108,7 @@ export default function HomePage() {
             Turn your ingredients into legal labels, a full allergen matrix and a live QR menu — in one afternoon, not one painful weekend.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/login" className="text-base font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-xl px-6 py-3.5 shadow-lg shadow-[#9DE26B]/20">
+            <Link href="/signup" className="text-base font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-xl px-6 py-3.5 shadow-lg shadow-[#9DE26B]/20">
               Start free — no card
             </Link>
             <Link href="/pricing" className="text-base font-semibold text-white border border-white/25 hover:bg-white/10 rounded-xl px-6 py-3.5">
@@ -245,16 +245,37 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/login" className={'mt-6 text-center rounded-xl px-4 py-3 text-sm font-semibold ' + (i === 1 ? 'bg-[#9DE26B] text-[#0E2A06] hover:bg-[#b6ec90]' : 'bg-gray-900 text-white hover:bg-gray-800')}>
+              <Link href="/signup" className={'mt-6 text-center rounded-xl px-4 py-3 text-sm font-semibold ' + (i === 1 ? 'bg-[#9DE26B] text-[#0E2A06] hover:bg-[#b6ec90]' : 'bg-gray-900 text-white hover:bg-gray-800')}>
                 Start free trial
               </Link>
             </div>
           ))}
         </div>
         <p className="text-center text-sm text-gray-500 mt-5">
-          Short on time? {SETUP_ADDON.name} for a one-off £{SETUP_ADDON.priceGBP} — we&apos;ll set up your menu for you.{' '}
+          Short on time? {SETUP_ADDON.name} for a one-off £{SETUP_ADDON.priceGBP} —{' '}
+          <Link href="/menu-import" className="font-semibold text-[#3B6D11] hover:underline">we&apos;ll set up your menu for you</Link>.{' '}
           <Link href="/pricing" className="font-semibold text-[#3B6D11] hover:underline">Compare plans</Link>
         </p>
+      </section>
+
+      {/* Lead magnet */}
+      <section className="bg-[#F6FAF0] border-y border-[#E3EECF]">
+        <div className="max-w-4xl mx-auto px-5 py-14 text-center">
+          <p className="text-sm font-bold uppercase tracking-wide text-[#3B6D11]">Free download</p>
+          <h2 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Not ready yet? Grab the free allergen matrix template
+          </h2>
+          <p className="mt-2 text-gray-500 max-w-xl mx-auto">
+            A printable A4 matrix for all 14 UK allergens — fill it in by hand and show it to your
+            EHO. No catch.
+          </p>
+          <Link
+            href="/free-allergen-matrix"
+            className="inline-block mt-5 text-sm font-semibold text-[#0E2A06] bg-white border border-[#C0DD97] hover:bg-[#EAF3DE] rounded-xl px-5 py-3"
+          >
+            Get the free template →
+          </Link>
+        </div>
       </section>
 
       <Faq />
@@ -263,7 +284,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-5 py-16 text-center">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Get your allergens sorted this week</h2>
           <p className="mt-3 text-[#C0DD97]">Set up your menu free, see the labels and matrix for yourself, then decide.</p>
-          <Link href="/login" className="inline-block mt-7 text-base font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-xl px-7 py-3.5">
+          <Link href="/signup" className="inline-block mt-7 text-base font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-xl px-7 py-3.5">
             Start your free 14 days
           </Link>
         </div>

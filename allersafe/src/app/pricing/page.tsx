@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { PLANS, SETUP_ADDON } from '@/lib/plans';
+import { SETUP_ADDON } from '@/lib/plans';
 import { Faq } from '@/components/Faq';
+import { PricingPlans } from '@/components/PricingPlans';
 
 export const metadata = {
   title: 'Pricing — AllerSafe',
@@ -17,7 +18,6 @@ function Shield({ className = '' }: { className?: string }) {
 }
 
 export default function PricingPage() {
-  const plans = Object.values(PLANS);
   return (
     <div className="bg-white text-gray-900 min-h-screen">
       <header className="bg-[#0E2A06] border-b border-white/10">
@@ -26,7 +26,7 @@ export default function PricingPage() {
             <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#9DE26B] text-[#0E2A06]"><Shield className="w-5 h-5" /></span>
             <span className="text-lg font-bold text-white">AllerSafe</span>
           </Link>
-          <Link href="/login" className="ml-auto text-sm font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-lg px-4 py-2">
+          <Link href="/signup" className="ml-auto text-sm font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-lg px-4 py-2">
             Start free
           </Link>
         </div>
@@ -42,43 +42,7 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-5 max-w-3xl mx-auto">
-          {plans.map((plan, i) => {
-            const featured = i === 1;
-            return (
-              <div
-                key={plan.key}
-                className={'rounded-2xl p-7 flex flex-col ' + (featured ? 'bg-[#0E2A06] text-white' : 'bg-white border border-gray-200')}
-              >
-                {featured && (
-                  <span className="self-start text-xs font-bold text-[#0E2A06] bg-[#9DE26B] px-2.5 py-1 rounded-full mb-3">Most popular</span>
-                )}
-                <h2 className={'text-lg font-bold ' + (featured ? 'text-white' : 'text-gray-900')}>{plan.name}</h2>
-                <p className="mt-2">
-                  <span className="text-5xl font-extrabold">£{plan.priceGBP}</span>
-                  <span className={featured ? 'text-[#C0DD97]' : 'text-gray-400'}>/mo</span>
-                </p>
-                <p className={'text-sm mt-1 ' + (featured ? 'text-[#C0DD97]' : 'text-gray-500')}>{plan.blurb}</p>
-                <p className={'text-xs font-semibold mt-2 ' + (featured ? 'text-[#9DE26B]' : 'text-[#3B6D11]')}>14-day free trial · no card required</p>
-                <ul className={'mt-5 space-y-2.5 flex-1 text-sm ' + (featured ? 'text-[#C0DD97]' : 'text-gray-600')}>
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2">
-                      <span className={'mt-0.5 ' + (featured ? 'text-[#9DE26B]' : 'text-[#3B6D11]')}>✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/login"
-                  className={'mt-7 w-full text-center rounded-xl px-4 py-3 text-sm font-semibold transition-colors ' +
-                    (featured ? 'bg-[#9DE26B] text-[#0E2A06] hover:bg-[#b6ec90]' : 'bg-gray-900 text-white hover:bg-gray-800')}
-                >
-                  Start 14-day free trial
-                </Link>
-              </div>
-            );
-          })}
-        </div>
+        <PricingPlans />
 
         <div className="max-w-3xl mx-auto mt-5 rounded-2xl border border-dashed border-gray-300 bg-[#F6FAF0] p-6 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -89,8 +53,8 @@ export default function PricingPage() {
               Short on time? {SETUP_ADDON.blurb}. Send us your menu and supplier specs and we&apos;ll set up your ingredients and dishes for you.
             </p>
           </div>
-          <Link href="/login" className="text-sm font-semibold text-[#27500A] bg-white border border-[#C0DD97] rounded-lg px-4 py-2 hover:bg-[#EAF3DE]">
-            Add at checkout
+          <Link href="/menu-import" className="text-sm font-semibold text-[#27500A] bg-white border border-[#C0DD97] rounded-lg px-4 py-2 hover:bg-[#EAF3DE]">
+            Ask about menu import
           </Link>
         </div>
 

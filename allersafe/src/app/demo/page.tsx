@@ -63,7 +63,7 @@ export default function DemoMenuPage() {
             This is what your customers see when they scan your QR code — try the filters.
           </p>
           <Link
-            href="/login"
+            href="/signup"
             className="text-xs font-semibold text-[#0E2A06] bg-[#9DE26B] hover:bg-[#b6ec90] rounded-lg px-3 py-1.5 shrink-0"
           >
             Build yours free
