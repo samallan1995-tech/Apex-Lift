@@ -299,16 +299,30 @@ export default function HomePage() {
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
               <Link href="/pricing" className="hover:text-white">Pricing</Link>
-              <Link href="/terms" className="hover:text-white">Terms</Link>
-              <Link href="/privacy" className="hover:text-white">Privacy</Link>
+              <Link href="/demo" className="hover:text-white">Example menu</Link>
+              <Link href="/menu-import" className="hover:text-white">Menu import</Link>
               <a href="mailto:support@allersafe.org" className="hover:text-white">Support</a>
               <Link href="/login" className="hover:text-white">Sign in</Link>
             </div>
           </div>
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+            <span className="font-semibold text-white/80">Guides:</span>
+            <Link href="/natashas-law-labels" className="hover:text-white">Natasha&apos;s Law labels</Link>
+            <Link href="/ppds-labelling-guide" className="hover:text-white">PPDS labelling guide</Link>
+            <Link href="/allergen-matrix-template" className="hover:text-white">Allergen matrix guide</Link>
+            <Link href="/free-allergen-matrix" className="hover:text-white">Free matrix template</Link>
+            <Link href="/terms" className="hover:text-white">Terms</Link>
+            <Link href="/privacy" className="hover:text-white">Privacy</Link>
+          </div>
           <p className="mt-6 text-xs leading-relaxed max-w-3xl">
             AllerSafe is a management tool. Your business remains legally responsible under UK food law (including Natasha&apos;s Law / PPDS regulations) for verifying all allergen declarations against current supplier specifications before serving.
           </p>
-          <p className="mt-4 text-xs">© {new Date().getFullYear()} AllerSafe. Payments processed securely by Stripe.</p>
+          {/* TODO(sam): replace the placeholders below with your real trading name and contact email */}
+          <p className="mt-4 text-xs">
+            AllerSafe is operated by [YOUR NAME / TRADING NAME] · Contact:{' '}
+            <a href="mailto:support@allersafe.org" className="underline hover:text-white">support@allersafe.org</a>
+          </p>
+          <p className="mt-2 text-xs">© {new Date().getFullYear()} AllerSafe. Payments processed securely by Stripe.</p>
         </div>
       </footer>
     </div>
